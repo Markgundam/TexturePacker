@@ -12,29 +12,27 @@ normal_str = "normal"
 
 for basecolorpath in input_images:
     if basecolor_str in basecolorpath:
-        basecolor = basecolorpath
-
-for roughnesspath in input_images:
-    if roughness_str in roughnesspath:
-        roughness = roughnesspath
-
-for heightpath in input_images:
-    if height_str in heightpath:
-        height = heightpath
-
-for ambientocclusionpath in input_images:
-    if ambientocclusion_str in ambientocclusionpath:
-        ambientocclusion = ambientocclusionpath
+        basecolor = Image.open(basecolorpath)
 
 for normalpath in input_images:
     if normal_str in normalpath:
-        normal = normalpath
+        normal = Image.open(normalpath)
 
-print("Basecolor path is: " + basecolor)
-print("Roughness path is: " + roughness)
-print("Height path is: " + height)
-print("Ambientocclusion path is: " + ambientocclusion)
-print("Normal path is: " + normal)
+for roughnesspath in input_images:
+    if roughness_str in roughnesspath:
+        roughness = Image.open(roughnesspath)
+        roughness = roughness.convert('L')
 
+for heightpath in input_images:
+    if height_str in heightpath:
+        height = Image.open(heightpath)
+        height = height.convert('L')
 
+for ambientocclusionpath in input_images:
+    if ambientocclusion_str in ambientocclusionpath:
+        ambientocclusion = Image.open(ambientocclusionpath)
+        ambientocclusion = ambientocclusion.convert('L')
+
+image_merged = Image.merge("RGBA", (basecolor.getchannel("R"), basecolor.getchannel("G"), basecolor.getchannel("B"), roughness))
+image_merged.save("RGBA.png")
 
