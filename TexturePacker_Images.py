@@ -1,38 +1,36 @@
-﻿import tkinter
+﻿from logging import exception
 from tkinter import filedialog
 from PIL import Image
 
-input_images = filedialog.askopenfilenames(title = "Select Image Files")
+input_images = filedialog.askopenfilenames(title="Select Image Files")
 
-basecolor_str = "basecolor"
-roughness_str = "roughness"
-height_str = "height"
-ambientocclusion_str = "ambientOcclusion"
-normal_str = "normal"
+for path in input_images:
+    if "basecolor" in path:
+        color = Image.open(path)
+        color.save("BaseColor.png")
+        continue
 
-for basecolorpath in input_images:
-    if basecolor_str in basecolorpath:
-        basecolor = Image.open(basecolorpath)
+    if "normal" in path:
+        normal = Image.open(path)
+        normal.save("Normal.png")
+        continue
 
-for normalpath in input_images:
-    if normal_str in normalpath:
-        normal = Image.open(normalpath)
+    if "roughness" in path:
+        roughness = Image.open(path)
+        roughness.save("Roughness.png")
+        continue
 
-for roughnesspath in input_images:
-    if roughness_str in roughnesspath:
-        roughness = Image.open(roughnesspath)
-        roughness = roughness.convert('L')
+    if "height" in path:
+        height = Image.open(path)
+        height.save("Height.png")
+        continue
 
-for heightpath in input_images:
-    if height_str in heightpath:
-        height = Image.open(heightpath)
-        height = height.convert('L')
+    if "ambientOcclusion" in path:
+        ambient_occlusion = Image.open(path)
+        ambient_occlusion.save("AmbientOcclusion.png")
+        continue
 
-for ambientocclusionpath in input_images:
-    if ambientocclusion_str in ambientocclusionpath:
-        ambientocclusion = Image.open(ambientocclusionpath)
-        ambientocclusion = ambientocclusion.convert('L')
+    raise Exception
 
-image_merged = Image.merge("RGBA", (basecolor.getchannel("R"), basecolor.getchannel("G"), basecolor.getchannel("B"), roughness))
+image_merged = Image.merge("RGBA", (normal.getchannel("R"), normal.getchannel("G"), ambient_occlusion.getchannel("R"), height.getchannel("R")))
 image_merged.save("RGBA.png")
-

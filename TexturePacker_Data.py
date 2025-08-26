@@ -1,7 +1,7 @@
 ﻿from tkinter import filedialog
 from PIL import Image
 
-file_path = filedialog.askopenfilename()
+file_path = filedialog.askopenfilename(title = "Select Image File")
 channel_1_input = input("Enter channel 1: ")
 channel_2_input = input("Enter channel 2: ")
 channel_3_input = input("Enter channel 3: ")
