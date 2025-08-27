@@ -4,10 +4,11 @@ from random import choice
 from tkinter import filedialog
 from PIL import Image
 
-input_images = filedialog.askopenfilenames(title="Select Image Files")
+texture_files = filedialog.askopenfilenames(title="Select Image Files")
 input_options = {}
 
-for path in input_images:
+#fill in the input_options dictionary based on the images loaded
+for path in texture_files:
     if "basecolor" in path:
         color = Image.open(path)
         input_options["basecolor"] = 1
@@ -35,41 +36,39 @@ for path in input_images:
 
     raise Exception
 
-def input_texture():
+#function that shows all the input options, asks the user the choose which input to work with
+def choose_input():
 
     for key, options in input_options.items():
         print(options, key)
 
-    input_1 = int(input("Select input image: "))
+    choice = int(input("Select input image: "))
 
-    if input_1 == 1:
+    if choice == 1:
         print("Color selected")
-        input_1 = color
-
-    elif input_1 == 2:
+        choice = color
+    elif choice == 2:
         print("Normal selected")
-        input_1 = normal
-
-    elif input_1 == 3:
+        choice = normal
+    elif choice == 3:
         print("Roughness selected")
-        input_1 = roughness
-
-    elif input_1 == 4:
+        choice = roughness
+    elif choice == 4:
         print("Height selected")
-        input_1 = height
-
-    elif input_1 == 5:
+        choice = height
+    elif choice == 5:
         print("AO selected")
-        input_1 = ambient_occlusion
-
-    elif input_1 != [1, 2, 3, 4, 5]:
+        choice = ambient_occlusion
+    elif choice != [1, 2, 3, 4, 5]:
         print("Invalid input")
+    return choice
 
+#asks the user to choose how many inputs to work with
 number_of_inputs = int(input("Number of input images: "))
 
+#loop through all inputs and call the choose_input function
 for inputs in range(number_of_inputs):
-            input_texture()
-
+            choose_input()
 
 #image_merged = Image.merge("RGBA", (normal.getchannel("R"), normal.getchannel("G"), ambient_occlusion.getchannel("R"), height.getchannel("R")))
 #image_merged.save("RGBA.png")
