@@ -115,7 +115,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
-        inputs.clear()
+        input_list.clear()
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
@@ -168,21 +168,21 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         layout.addWidget(channel_box)
 
-        inputs[labeltext] = {"R": False, "G": False, "B": False, "A": False, "Output": 0}
+        input_list[labeltext] = {"R": False, "G": False, "B": False, "A": False, "Output": 0}
 
     def add_output(self, inputtype="", parent=QGroupBox, layout=QVBoxLayout):
 
-        output_name = QLineEdit("", parent)
-        output_name.setMaximumHeight(33)
-        output_name.setContentsMargins(0, 0, 0, 0)
-        output_name.setPlaceholderText("File Name")
+        output_widget = QLineEdit("", parent)
+        output_widget.setMaximumHeight(33)
+        output_widget.setContentsMargins(0, 0, 0, 0)
+        output_widget.setPlaceholderText("File Name")
 
-        outputs.append(output_name)
+        output_list.append(output_widget)
 
         label = QLabel("[" + "] " + inputtype, parent)
 
         layout.addWidget(label)
-        layout.addWidget(output_name)
+        layout.addWidget(output_widget)
 
     def input_spacer_manager(self, main_box_layout=QVBoxLayout, spacer=QSpacerItem):
         main_box_layout.removeItem(spacer)
@@ -196,15 +196,28 @@ class PresetMaker(QtWidgets.QMainWindow):
         widget.setCurrentIndex(3)
 
     def save_preset(self):
-        print("save_stuff")
+        #mapped_inputs = {}
+
+        for output in output_list:
+            for input, key in input_list.items():
+                if(input_list[input]["Output"] == output_list.index(output)):
+                    #mapped_inputs[output_list.index(output)] = input_list.items()
+
+        #for inputsmapped in mapped_inputs:
+        #   print(inputsmapped)
+
+        #print(f"Output {output_list.index(output)} with title {output.text()} will use this list of inputs")
+
 
     def channel_update(self, labeltext="", key=str, checkbox=QCheckBox):
-        inputs[labeltext][key] = checkbox.isChecked()
-        print(f"Input [{labeltext}] updated to [{key}] = {inputs[labeltext][key]}")
+        input_list[labeltext][key] = checkbox.isChecked()
+        print(f"Input [{labeltext}] updated to [{key}] = {input_list[labeltext][key]}")
 
     def input_output_mapped(self, labeltext="", key=str, output_selection=int):
-        inputs[labeltext][key] = output_selection
-        print(f"Output mapped to: {output_selection}")
+        input_list[labeltext][key] = output_selection
+
+    def output_name_update(self, newtext=""):
+        print(newtext)
 
 #------------------------------------------------------
 
@@ -230,8 +243,8 @@ QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use h
 # set app
 app = QApplication(sys.argv)
 
-inputs = dict()
-outputs = []
+input_list = dict()
+output_list = []
 
 #initialize windows
 mainmenu = MainMenu()
