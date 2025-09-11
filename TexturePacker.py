@@ -1,10 +1,10 @@
 ﻿import sys
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
-    QLayout, QLabel, QPushButton, QListWidget
+    QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit
+from PyQt5.sip import delete
 from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets, QtCore, sip
+from PyQt5 import QtWidgets, QtCore, sip, QtGui
 
 #------------------------------------------------------
 
@@ -39,24 +39,54 @@ class PresetMaker(QtWidgets.QMainWindow):
         super(PresetMaker, self).__init__()
         loadUi("PresetMaker.ui", self)
 
+        self.output_amount = 0
+
         main_box = self.ChannelGroup
+
         main_box_layout = QVBoxLayout()
         main_box.setLayout(main_box_layout)
-        output_list = self.OutputList
+
+        output_names_box = self.OutputNamesBox
+        output_names_box.setContentsMargins(0, 0, 0, 0)
+
+        output_names_box_layout = QVBoxLayout()
+        output_names_box.setLayout(output_names_box_layout)
+
+        input_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, main_box, main_box_layout))
+        self.BaseColorButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.NormalsButton.clicked.connect(lambda: self.include_input("Normals", self.NormalsButton, main_box, main_box_layout))
+        self.NormalsButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.RoughnessButton.clicked.connect(lambda: self.include_input("Roughness", self.RoughnessButton, main_box, main_box_layout))
+        self.RoughnessButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.MetalnessButton.clicked.connect(lambda: self.include_input("Metalness", self.MetalnessButton, main_box, main_box_layout))
+        self.MetalnessButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.AOButton.clicked.connect(lambda: self.include_input("AO", self.AOButton, main_box, main_box_layout))
+        self.AOButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.HeightButton.clicked.connect(lambda: self.include_input("Height", self.HeightButton, main_box, main_box_layout))
+        self.HeightButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
+
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, main_box, main_box_layout))
+        self.EmissiveButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
 
-        self.RGBButton.clicked.connect(lambda: self.include_output("RGB", output_list))
-        self.RGBAButton.clicked.connect(lambda: self.include_output("RGBA", output_list))
+        self.RGBButton.clicked.connect(lambda: self.include_output("Output RGB:", output_names_box, output_names_box_layout))
+        self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
-        self.ResetInputsButton.clicked.connect(self.include_reset_inputs)
-        self.ResetOutputsButton.clicked.connect(self.include_reset_outputs)
+        self.RGBAButton.clicked.connect(lambda: self.include_output("Output RGBA:", output_names_box, output_names_box_layout))
+        self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
+
+        self.ResetInputsButton.clicked.connect(lambda: self.include_reset_inputs(main_box_layout, input_spacer))
+        self.ResetOutputsButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
+
+        self.NameBox.currentIndexChanged.connect(self.open_rename_window)
+        self.RenameButton.clicked.connect(self.open_rename_window)
 
         self.BackButton.clicked.connect(self.back_to_mainmenu)
 
@@ -64,13 +94,10 @@ class PresetMaker(QtWidgets.QMainWindow):
         button.setEnabled(False)
         self.add_channels(str(input_type), main_box, main_box_layout)
 
-    def include_output(self, output_type:"", output_list=QListWidget):
-        output_list.addItem(output_type)
+    def include_output(self, output_type:"", output_names_box=QGroupBox, output_box_layout=QVBoxLayout):
+        self.add_output(output_type, output_names_box, output_box_layout)
 
-    def include_reset_inputs(self):
-        for i in range(self.InputList.count()):
-            self.InputList.takeItem(0)
-            i = i + 1
+    def include_reset_inputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         self.BaseColorButton.setEnabled(True)
         self.NormalsButton.setEnabled(True)
         self.RoughnessButton.setEnabled(True)
@@ -78,13 +105,15 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.AOButton.setEnabled(True)
         self.HeightButton.setEnabled(True)
         self.EmissiveButton.setEnabled(True)
-        for QGroupBox in self.ChannelGroup.children():
-            sip.delete(QGroupBox)
+        layout.removeItem(spacer)
+        for i in reversed(range(layout.count())):
+            layout.itemAt(i).widget().deleteLater()
 
-    def include_reset_outputs(self):
-        for i in range(self.OutputList.count()):
-            self.OutputList.takeItem(0)
-            i = i + 1
+    def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
+        layout.removeItem(spacer)
+        for i in reversed(range(layout.count())):
+            layout.itemAt(i).widget().deleteLater()
+        self.output_amount = 0
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
@@ -120,23 +149,69 @@ class PresetMaker(QtWidgets.QMainWindow):
         channel_box.setLayout(channel_box_layout)
 
         layout.addWidget(channel_box)
-        layout.addStretch()
+
+    def add_output(self, labeltext="", parent=QGroupBox, layout=QVBoxLayout):
+        input_field = QLineEdit("", parent)
+        input_field.setMaximumHeight(33)
+        input_field.setContentsMargins(0, 0, 0, 0)
+        input_field.setPlaceholderText("File Name")
+        label = QLabel("[" + str(self.output_amount) + "] " + labeltext, parent)
+
+        self.output_amount += 1
+
+        layout.addWidget(label)
+        layout.addWidget(input_field)
+
+    def input_spacer_manager(self, main_box_layout=QVBoxLayout, spacer=QSpacerItem):
+        main_box_layout.removeItem(spacer)
+        main_box_layout.addSpacerItem(spacer)
+
+    def output_spacer_manager(self, output_box_layout=QVBoxLayout, spacer=QSpacerItem):
+        output_box_layout.removeItem(spacer)
+        output_box_layout.addSpacerItem(spacer)
+
+    def open_rename_window(self):
+        widget.setCurrentIndex(3)
+
 
 #------------------------------------------------------
 
+class RenamePreset(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(RenamePreset, self).__init__()
+        loadUi("RenamePreset.ui", self)
+
+        self.SaveNameButton.clicked.connect(self.save_name)
+        self.DiscardNameButton.clicked.connect(self.discard_name)
+
+    def save_name(self):
+        widget.setCurrentIndex(2)
+
+    def discard_name(self):
+        widget.setCurrentIndex(2)
+
+# ------------------------------------------------------
+
+QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
+QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
+
 # set app
 app = QApplication(sys.argv)
+
+output_amount = 0
 
 #initialize windows
 mainmenu = MainMenu()
 packtextures = PackTextures()
 presetmaker = PresetMaker()
+renamepreset = RenamePreset()
 
 #set windows as stackedwidget
 widget = QtWidgets.QStackedWidget()
 widget.addWidget(mainmenu)
 widget.addWidget(packtextures)
 widget.addWidget(presetmaker)
+widget.addWidget(renamepreset)
 
 #show main menu
 widget.setFixedHeight(mainmenu.height())
