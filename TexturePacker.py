@@ -8,6 +8,12 @@ from PyQt5 import QtWidgets, QtCore, sip, QtGui
 
 #------------------------------------------------------
 
+#class InputChannels(R=bool, G=bool, B=bool, A=bool):
+ #   def __init__(self):
+  #      super(InputChannels, self).__init__()
+
+#------------------------------------------------------
+
 class MainMenu(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainMenu, self).__init__()
@@ -39,7 +45,6 @@ class PresetMaker(QtWidgets.QMainWindow):
         super(PresetMaker, self).__init__()
         loadUi("PresetMaker.ui", self)
 
-        self.output_amount = 0
 
         main_box = self.ChannelGroup
 
@@ -90,6 +95,8 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.BackButton.clicked.connect(self.back_to_mainmenu)
 
+        self.SavePresetButton.clicked.connect(self.save_preset)
+
     def include_input(self, input_type="", button=QPushButton, main_box=QGroupBox, main_box_layout=QVBoxLayout):
         button.setEnabled(False)
         self.add_channels(str(input_type), main_box, main_box_layout)
@@ -108,12 +115,12 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
+        inputs.clear()
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
-        self.output_amount = 0
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
@@ -128,15 +135,25 @@ class PresetMaker(QtWidgets.QMainWindow):
         r_checkbox = QCheckBox("R:")
         r_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
         r_checkbox.setMaximumSize(32, 20)
+        r_checkbox.stateChanged.connect(lambda: self.channel_update(labeltext,"R", r_checkbox))
+
         g_checkbox = QCheckBox("G:")
         g_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
         g_checkbox.setMaximumSize(32, 20)
+        g_checkbox.stateChanged.connect(lambda: self.channel_update(labeltext, "G", g_checkbox))
+
         b_checkbox = QCheckBox("B:")
         b_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
         b_checkbox.setMaximumSize(32, 20)
+        b_checkbox.stateChanged.connect(lambda: self.channel_update(labeltext, "B", b_checkbox))
+
         a_checkbox = QCheckBox("A:")
         a_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
         a_checkbox.setMaximumSize(32, 20)
+        a_checkbox.stateChanged.connect(lambda: self.channel_update(labeltext, "A", a_checkbox))
+
+        output_selection = QSpinBox(parent)
+        output_selection.valueChanged.connect(lambda: self.input_output_mapped(labeltext, "Output", output_selection.value()))
 
         channel_box_layout.setContentsMargins(0,0,0,0)
         channel_box_layout.addWidget(channel_label)
@@ -144,23 +161,28 @@ class PresetMaker(QtWidgets.QMainWindow):
         channel_box_layout.addWidget(g_checkbox)
         channel_box_layout.addWidget(b_checkbox)
         channel_box_layout.addWidget(a_checkbox)
+        channel_box_layout.addWidget(output_selection)
         channel_box_layout.addStretch()
 
         channel_box.setLayout(channel_box_layout)
 
         layout.addWidget(channel_box)
 
-    def add_output(self, labeltext="", parent=QGroupBox, layout=QVBoxLayout):
-        input_field = QLineEdit("", parent)
-        input_field.setMaximumHeight(33)
-        input_field.setContentsMargins(0, 0, 0, 0)
-        input_field.setPlaceholderText("File Name")
-        label = QLabel("[" + str(self.output_amount) + "] " + labeltext, parent)
+        inputs[labeltext] = {"R": False, "G": False, "B": False, "A": False, "Output": 0}
 
-        self.output_amount += 1
+    def add_output(self, inputtype="", parent=QGroupBox, layout=QVBoxLayout):
+
+        output_name = QLineEdit("", parent)
+        output_name.setMaximumHeight(33)
+        output_name.setContentsMargins(0, 0, 0, 0)
+        output_name.setPlaceholderText("File Name")
+
+        outputs.append(output_name)
+
+        label = QLabel("[" + "] " + inputtype, parent)
 
         layout.addWidget(label)
-        layout.addWidget(input_field)
+        layout.addWidget(output_name)
 
     def input_spacer_manager(self, main_box_layout=QVBoxLayout, spacer=QSpacerItem):
         main_box_layout.removeItem(spacer)
@@ -173,6 +195,16 @@ class PresetMaker(QtWidgets.QMainWindow):
     def open_rename_window(self):
         widget.setCurrentIndex(3)
 
+    def save_preset(self):
+        print("save_stuff")
+
+    def channel_update(self, labeltext="", key=str, checkbox=QCheckBox):
+        inputs[labeltext][key] = checkbox.isChecked()
+        print(f"Input [{labeltext}] updated to [{key}] = {inputs[labeltext][key]}")
+
+    def input_output_mapped(self, labeltext="", key=str, output_selection=int):
+        inputs[labeltext][key] = output_selection
+        print(f"Output mapped to: {output_selection}")
 
 #------------------------------------------------------
 
@@ -198,7 +230,8 @@ QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use h
 # set app
 app = QApplication(sys.argv)
 
-output_amount = 0
+inputs = dict()
+outputs = []
 
 #initialize windows
 mainmenu = MainMenu()
