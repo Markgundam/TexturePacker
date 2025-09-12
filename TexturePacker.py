@@ -1,7 +1,7 @@
 ﻿import sys
 
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
-    QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit
+    QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox
 from PyQt5.sip import delete
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore, sip, QtGui
@@ -81,10 +81,10 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, main_box, main_box_layout))
         self.EmissiveButton.clicked.connect(lambda: self.input_spacer_manager(main_box_layout, input_spacer))
 
-        self.RGBButton.clicked.connect(lambda: self.include_output("Output RGB:", output_names_box, output_names_box_layout))
+        self.RGBButton.clicked.connect(lambda: self.include_output("Output RGB:", output_names_box, output_names_box_layout, output_amount=3))
         self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
-        self.RGBAButton.clicked.connect(lambda: self.include_output("Output RGBA:", output_names_box, output_names_box_layout))
+        self.RGBAButton.clicked.connect(lambda: self.include_output("Output RGBA:", output_names_box, output_names_box_layout, output_amount=4))
         self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
         self.ResetInputsButton.clicked.connect(lambda: self.include_reset_inputs(main_box_layout, input_spacer))
@@ -101,8 +101,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         button.setEnabled(False)
         self.add_channels(str(input_type), main_box, main_box_layout)
 
-    def include_output(self, output_type:"", output_names_box=QGroupBox, output_box_layout=QVBoxLayout):
-        self.add_output(output_type, output_names_box, output_box_layout)
+    def include_output(self, output_type:"", output_names_box=QGroupBox, output_box_layout=QVBoxLayout, output_amount=0):
+        self.add_output(output_type, output_names_box, output_box_layout, output_amount)
 
     def include_reset_inputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         self.BaseColorButton.setEnabled(True)
@@ -115,12 +115,13 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
-        input_list.clear()
+        input_dict.clear()
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
+        output_list.clear()
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
@@ -168,9 +169,11 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         layout.addWidget(channel_box)
 
-        input_list[labeltext] = {"R": False, "G": False, "B": False, "A": False, "Output": 0}
+        input_dict[labeltext] = {"input_type": labeltext, "R": False, "G": False, "B": False, "A": False, "Output": 0}
 
-    def add_output(self, inputtype="", parent=QGroupBox, layout=QVBoxLayout):
+    def add_output(self, inputtype="", parent=QGroupBox, layout=QVBoxLayout, channel_amount=0):
+
+        output_channels = ["R", "G", "B", "A"]
 
         output_widget = QLineEdit("", parent)
         output_widget.setMaximumHeight(33)
@@ -179,10 +182,32 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         output_list.append(output_widget)
 
-        label = QLabel("[" + "] " + inputtype, parent)
+        label = QLabel(f"[{output_list.__len__()-1}] {inputtype}")
+
+        output_channel_box = QGroupBox("", parent)
+        output_channel_box.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        output_channel_box_layout = QHBoxLayout()
+
+        output_channel_box_layout.setContentsMargins(0, 0, 0, 0)
+        output_channel_box.setMaximumHeight(50)
+        output_channel_box.setContentsMargins(0, 0, 0, 0)
+        output_channel_box.setLayout(output_channel_box_layout)
+
+        for i in range(channel_amount):
+            output = QComboBox(output_channel_box)
+
+            output.setObjectName("out_" + output_channels[i])
+            output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+            output.setMaximumSize(50, 50)
+            output.addItem(output_channels[i])
+
+            output_channel_box_layout.addWidget(output)
+
+            output_channels_ref.append(output)
 
         layout.addWidget(label)
         layout.addWidget(output_widget)
+        layout.addWidget(output_channel_box)
 
     def input_spacer_manager(self, main_box_layout=QVBoxLayout, spacer=QSpacerItem):
         main_box_layout.removeItem(spacer)
@@ -196,28 +221,33 @@ class PresetMaker(QtWidgets.QMainWindow):
         widget.setCurrentIndex(3)
 
     def save_preset(self):
-        #mapped_inputs = {}
+        mapped_inputs = {}
+
+        #output_list is a list (CR, NOH)
+        #input_dict is a dictionary (R: True, G: True, B: False, A: False)
 
         for output in output_list:
-            for input, key in input_list.items():
-                if(input_list[input]["Output"] == output_list.index(output)):
-                    #mapped_inputs[output_list.index(output)] = input_list.items()
+            mapped_inputs[output.text()] = []
+            for input, key in input_dict.items():
+                if(input_dict[input]["Output"] == output_list.index(output)):
+                    mapped_inputs[output.text()].append(input_dict[input])
 
-        #for inputsmapped in mapped_inputs:
-        #   print(inputsmapped)
-
-        #print(f"Output {output_list.index(output)} with title {output.text()} will use this list of inputs")
+        for output in output_list:
+            print(f"The {output.text()} output will pack: {mapped_inputs[output.text()]}")
 
 
     def channel_update(self, labeltext="", key=str, checkbox=QCheckBox):
-        input_list[labeltext][key] = checkbox.isChecked()
-        print(f"Input [{labeltext}] updated to [{key}] = {input_list[labeltext][key]}")
+        input_dict[labeltext][key] = checkbox.isChecked()
+        self.populate_all_combo()
 
     def input_output_mapped(self, labeltext="", key=str, output_selection=int):
-        input_list[labeltext][key] = output_selection
+        input_dict[labeltext][key] = output_selection
 
-    def output_name_update(self, newtext=""):
-        print(newtext)
+    def populate_all_combo(self):
+        for QComboBox in output_channels_ref:
+            QComboBox.addItem("wtf")
+            #print(input_value)
+
 
 #------------------------------------------------------
 
@@ -243,7 +273,8 @@ QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use h
 # set app
 app = QApplication(sys.argv)
 
-input_list = dict()
+output_channels_ref = []
+input_dict = dict()
 output_list = []
 
 #initialize windows
