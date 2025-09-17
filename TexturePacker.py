@@ -123,7 +123,7 @@ class PresetMaker(QtWidgets.QMainWindow):
             for channel in channels:
                 QComboBox.addItem(labeltext + ": " + channel)
 
-    def add_output(self,labeltext="",  parent=QGroupBox, layout=QVBoxLayout, channel_amount=0):
+    def add_output(self, labeltext="",  parent=QGroupBox, layout=QVBoxLayout, channel_amount=int):
 
         output_channels = ["R", "G", "B", "A"]
 
@@ -170,7 +170,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         widget.setCurrentIndex(3)
 
     def save_preset(self):
-        print(output_dict)
+        for output in output_dict.values():
+            print(output)
 
 #------------------------------------------------------
 
