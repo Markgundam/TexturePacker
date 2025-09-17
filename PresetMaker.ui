@@ -39,8 +39,8 @@
      <rect>
       <x>20</x>
       <y>70</y>
-      <width>111</width>
-      <height>261</height>
+      <width>161</width>
+      <height>321</height>
      </rect>
     </property>
     <property name="font">
@@ -53,11 +53,14 @@
      <string>Input Types</string>
     </property>
     <widget class="QPushButton" name="BaseColorButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>20</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -68,15 +71,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Base Color</string>
+      <string>Base Color (RGB)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="NormalsButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>50</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -87,15 +93,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Normals</string>
+      <string>Normals (RGB)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="RoughnessButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>80</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -106,15 +115,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Roughness</string>
+      <string>Roughness (R)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="MetalnessButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>110</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -125,15 +137,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Metalness</string>
+      <string>Metalness (R)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="AOButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>140</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -144,15 +159,18 @@
       </font>
      </property>
      <property name="text">
-      <string>AO</string>
+      <string>AO (R)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="HeightButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>170</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -163,15 +181,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Height</string>
+      <string>Height (R)</string>
      </property>
     </widget>
     <widget class="QPushButton" name="EmissiveButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>200</y>
-       <width>111</width>
+       <width>161</width>
        <height>30</height>
       </rect>
      </property>
@@ -182,7 +203,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Emissive</string>
+      <string>Emissive (RGB)</string>
      </property>
     </widget>
    </widget>
@@ -192,7 +213,7 @@
       <x>640</x>
       <y>70</y>
       <width>141</width>
-      <height>281</height>
+      <height>321</height>
      </rect>
     </property>
     <property name="font">
@@ -270,7 +291,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>390</y>
+      <y>400</y>
       <width>131</width>
       <height>31</height>
      </rect>
@@ -319,10 +340,10 @@
    <widget class="QGroupBox" name="groupBox_4">
     <property name="geometry">
      <rect>
-      <x>430</x>
+      <x>190</x>
       <y>70</y>
-      <width>201</width>
-      <height>281</height>
+      <width>441</width>
+      <height>321</height>
      </rect>
     </property>
     <property name="font">
@@ -343,8 +364,8 @@
       <rect>
        <x>0</x>
        <y>20</y>
-       <width>201</width>
-       <height>261</height>
+       <width>441</width>
+       <height>301</height>
       </rect>
      </property>
      <property name="title">
@@ -352,55 +373,17 @@
      </property>
     </widget>
    </widget>
-   <widget class="QGroupBox" name="ChannelGroup">
+   <widget class="QPushButton" name="ResetButton">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
-      <width>281</width>
-      <height>281</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Montserrat Light</family>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="title">
-     <string>Inputs + Channels</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-    </property>
-    <property name="flat">
-     <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="ResetInputsButton">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>360</y>
-      <width>91</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>RESET INPUTS</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="ResetOutputsButton">
-    <property name="geometry">
-     <rect>
-      <x>530</x>
-      <y>360</y>
+      <x>660</x>
+      <y>400</y>
       <width>101</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>RESET OUTPUTS</string>
+     <string>RESET</string>
     </property>
    </widget>
    <widget class="QPushButton" name="BackButton">
@@ -452,7 +435,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>18</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
