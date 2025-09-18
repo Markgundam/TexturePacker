@@ -72,10 +72,10 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
 
-        self.RGBButton.clicked.connect(lambda: self.include_output("RGB", output_names_box, output_names_box_layout, output_amount=3))
+        self.RGBButton.clicked.connect(lambda: self.include_output("RGB", output_names_box, output_names_box_layout, channel_amount=3))
         self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
-        self.RGBAButton.clicked.connect(lambda: self.include_output("RGBA", output_names_box, output_names_box_layout, output_amount=4))
+        self.RGBAButton.clicked.connect(lambda: self.include_output("RGBA", output_names_box, output_names_box_layout, channel_amount=4))
         self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
@@ -91,8 +91,13 @@ class PresetMaker(QtWidgets.QMainWindow):
         button.setEnabled(False)
         self.add_channels(input_type, channels)
 
-    def include_output(self, labeltext="", output_names_box=QGroupBox, output_box_layout=QVBoxLayout, output_amount=0):
-        self.add_output(labeltext, output_names_box, output_box_layout, output_amount)
+    def add_channels(self, labeltext="", channels=[]):
+        for QComboBox in output_dropdowns:
+            for channel in channels:
+                QComboBox.addItem(labeltext + ": " + channel)
+
+    def include_output(self, labeltext="", output_names_box=QGroupBox, output_box_layout=QVBoxLayout, channel_amount=int):
+        self.add_output(labeltext, output_names_box, output_box_layout, channel_amount)
         self.BaseColorButton.setEnabled(True)
         self.NormalsButton.setEnabled(True)
         self.RoughnessButton.setEnabled(True)
@@ -100,6 +105,52 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.AOButton.setEnabled(True)
         self.HeightButton.setEnabled(True)
         self.EmissiveButton.setEnabled(True)
+
+
+    def add_output(self, labeltext="", parent=QGroupBox, layout=QVBoxLayout, channel_amount=int):
+
+        output_channels = ["R", "G", "B", "A"]
+
+        #name of output
+        output_name_field = QLineEdit("", parent)
+        output_name_field.editingFinished.connect(lambda: self.update_output_data(output_name_field.text(), labeltext, channel_amount))
+        output_name_field.setMaximumHeight(33)
+        output_name_field.setContentsMargins(0, 0, 0, 0)
+        output_name_field.setPlaceholderText("File Name")
+
+        #channel container
+        output_channel_container = QGroupBox("", parent)
+        output_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        output_channel_container.setMinimumHeight(40)
+        output_channel_container.setContentsMargins(0, 0, 0, 0)
+
+        #channel container layout
+        output_channel_container_layout = QHBoxLayout()
+        output_channel_container_layout.setContentsMargins(0, 0, 0, 0)
+
+        output_channel_container.setLayout(output_channel_container_layout)
+
+        for i in range(channel_amount):
+            output = QComboBox(output_channel_container)
+            output.addItem("Out " + output_channels[i])
+            output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+            output.setMaximumSize(200, 50)
+
+            output_channel_container_layout.addWidget(output)
+
+            output_dropdowns.append(output)
+
+        layout.addWidget(output_name_field)
+        layout.addWidget(output_channel_container)
+
+    def update_output_data(self, text="", output_type="", channel_amount=int):
+
+        output_channels = ["R", "G", "B", "A"]
+
+        output_dict[text] = {text: output_type}
+
+        for i in range(channel_amount):
+            output_dict[output_channels[i]] = None
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
@@ -118,50 +169,6 @@ class PresetMaker(QtWidgets.QMainWindow):
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
 
-    def add_channels(self, labeltext="", channels=[]):
-        for QComboBox in output_dropdowns:
-            for channel in channels:
-                QComboBox.addItem(labeltext + ": " + channel)
-
-    def add_output(self, labeltext="",  parent=QGroupBox, layout=QVBoxLayout, channel_amount=int):
-
-        output_channels = ["R", "G", "B", "A"]
-
-        #name of output
-        output_namefield = QLineEdit("", parent)
-        output_namefield.setMaximumHeight(33)
-        output_namefield.setContentsMargins(0, 0, 0, 0)
-        output_namefield.setPlaceholderText("File Name")
-
-        #channel container
-        output_channel_container = QGroupBox("", parent)
-        output_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
-        output_channel_container.setMinimumHeight(40)
-        output_channel_container.setContentsMargins(0, 0, 0, 0)
-
-        #channel container layout
-        output_channel_container_layout = QHBoxLayout()
-        output_channel_container_layout.setContentsMargins(0, 0, 0, 0)
-
-        output_channel_container.setLayout(output_channel_container_layout)
-
-        output_dict[labeltext] = {labeltext}
-
-        for i in range(channel_amount):
-            output = QComboBox(output_channel_container)
-            output.addItem("Out " + output_channels[i])
-            output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
-            output.setMaximumSize(200, 50)
-
-            output_channel_container_layout.addWidget(output)
-
-            output_dict.update({output_channels[i]: None})
-            output_dropdowns.append(output)
-
-        #layout.addWidget(label)
-        layout.addWidget(output_namefield)
-        layout.addWidget(output_channel_container)
-
     def output_spacer_manager(self, output_box_layout=QVBoxLayout, spacer=QSpacerItem):
         output_box_layout.removeItem(spacer)
         output_box_layout.addSpacerItem(spacer)
@@ -170,8 +177,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         widget.setCurrentIndex(3)
 
     def save_preset(self):
-        for output in output_dict.values():
-            print(output)
+        print("Saving Preset")
+        #update output_dict with dropdown text for R G B A
 
 #------------------------------------------------------
 
