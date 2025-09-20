@@ -109,6 +109,14 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def add_output(self, labeltext="", parent=QGroupBox, layout=QVBoxLayout, channel_amount=int):
 
+        global output_amount
+        output_amount +=1
+
+        for i in range(output_amount):
+            out
+
+
+
         output_channels = ["R", "G", "B", "A"]
 
         #name of output
@@ -204,6 +212,7 @@ QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use h
 # set app
 app = QApplication(sys.argv)
 
+output_amount = 0
 output_dropdowns = []
 output_dict = dict()
 
