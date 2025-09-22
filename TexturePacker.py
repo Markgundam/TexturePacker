@@ -68,33 +68,32 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
+        # inputs buttons
         self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
-
         self.NormalsButton.clicked.connect(lambda: self.include_input("Normals", self.NormalsButton, ["R", "G", "B"]))
-
         self.RoughnessButton.clicked.connect(lambda: self.include_input("Roughness", self.RoughnessButton, ["R"]))
-
         self.MetalnessButton.clicked.connect(lambda: self.include_input("Metalness", self.MetalnessButton, ["R"]))
-
         self.AOButton.clicked.connect(lambda: self.include_input("AO", self.AOButton, ["R"]))
-
         self.HeightButton.clicked.connect(lambda: self.include_input("Height", self.HeightButton, ["R"]))
-
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
 
+        # output buttons
         self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"]))
         self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
-
         self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"]))
         self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
+        # reset button
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
 
+        # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
         self.NameBox.currentIndexChanged.connect(self.open_rename_window)
         self.RenameButton.clicked.connect(self.open_rename_window)
 
+        # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
 
+        # save preset file button
         self.SavePresetButton.clicked.connect(self.save_preset)
 
     def include_input(self, input_type="", button=QPushButton, channels=[]):
