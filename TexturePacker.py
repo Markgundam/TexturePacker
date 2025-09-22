@@ -1,4 +1,6 @@
-﻿import sys
+﻿import json
+import os
+import sys
 from ftplib import all_errors
 
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
@@ -60,6 +62,10 @@ class PresetMaker(QtWidgets.QMainWindow):
         super(PresetMaker, self).__init__()
         loadUi("PresetMaker.ui", self)
 
+        path_to_json = os.path.dirname(os.path.abspath(__file__))
+        json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
+        print(json_files)
+
         output_names_box = self.OutputNamesBox
         output_names_box.setContentsMargins(0, 0, 0, 0)
 
@@ -67,6 +73,10 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_names_box.setLayout(output_names_box_layout)
 
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        for json_file in json_files:
+            json_file = str.removesuffix(json_file, '.json')
+            self.NameBox.addItem(json_file)
 
         # inputs buttons
         self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
@@ -87,7 +97,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(self.open_rename_window)
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(json_file))
         self.RenameButton.clicked.connect(self.open_rename_window)
 
         # back to main menu button
@@ -211,11 +221,22 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_box_layout.removeItem(spacer)
         output_box_layout.addSpacerItem(spacer)
 
-    def open_rename_window(self):
+    def open_rename_window(self, index=int):
         widget.setCurrentIndex(3)
+        print(index)
 
     def save_preset(self):
-        print("Save Preset")
+        presetname = self.NameBox.currentText()
+        output_data_str = ", ".join(f"{k}:{v}" for k, v in output_data.items())
+
+        print(f"File: {presetname}: {os.linesep} {output_data_str}")
+
+        output_file = open(f"{presetname}.json", "w")
+        json.dump(output_data, output_file)
+        output_file.close()
+
+    def load_file(self, filename):
+        print("Loading file")
 
 #------------------------------------------------------
 
@@ -224,10 +245,16 @@ class RenamePreset(QtWidgets.QMainWindow):
         super(RenamePreset, self).__init__()
         loadUi("RenamePreset.ui", self)
 
-        self.SaveNameButton.clicked.connect(self.save_name)
+        presetmaker = PresetMaker()
+
+        self.SaveNameButton.clicked.connect(lambda: self.save_name(presetmaker.NameBox))
         self.DiscardNameButton.clicked.connect(self.discard_name)
 
-    def save_name(self):
+    def save_name(self, index):
+        presetname = self.NameText.text()
+        index = presetmaker.NameBox.currentIndex()
+
+        presetmaker.NameBox.setItemText(index, presetname)
         widget.setCurrentIndex(2)
 
     def discard_name(self):
