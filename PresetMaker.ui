@@ -54,7 +54,7 @@
     </property>
     <widget class="QPushButton" name="BaseColorButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -76,7 +76,7 @@
     </widget>
     <widget class="QPushButton" name="NormalsButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -98,7 +98,7 @@
     </widget>
     <widget class="QPushButton" name="RoughnessButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -120,7 +120,7 @@
     </widget>
     <widget class="QPushButton" name="MetalnessButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -142,7 +142,7 @@
     </widget>
     <widget class="QPushButton" name="AOButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -164,7 +164,7 @@
     </widget>
     <widget class="QPushButton" name="HeightButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>
@@ -186,7 +186,7 @@
     </widget>
     <widget class="QPushButton" name="EmissiveButton">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="geometry">
       <rect>

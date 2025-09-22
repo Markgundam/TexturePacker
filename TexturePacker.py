@@ -99,30 +99,27 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def include_input(self, input_type="", button=QPushButton, channels=[]):
         button.setEnabled(False)
-        self.add_channels(input_type, channels)
-
-    def add_channels(self, labeltext="", channels=[]):
         for QComboBox in all_output_dropdowns:
             for channel in channels:
-                QComboBox.addItem(labeltext + ": " + channel)
+                QComboBox.addItem(input_type + ": " + channel)
+
+        for channel in channels:
+            all_channels_used.append(input_type + ": " + channel)
+
+        print(all_channels_used)
 
     def include_output(self, output_names_box=QGroupBox, output_box_layout=QVBoxLayout, channel_amount=[]):
 
         global outputs
         outputs += 1
-        self.add_output( output_names_box, output_box_layout, channel_amount)
 
-        self.BaseColorButton.setEnabled(True)
-        self.NormalsButton.setEnabled(True)
-        self.RoughnessButton.setEnabled(True)
-        self.MetalnessButton.setEnabled(True)
-        self.AOButton.setEnabled(True)
-        self.HeightButton.setEnabled(True)
-        self.EmissiveButton.setEnabled(True)
+        self.add_output( output_names_box, output_box_layout, channel_amount)
 
     def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[]):
 
+        current_output = outputs
 
+        # dictionary to hold all dropdowns of this specific output
         output_channel_drops = {}
 
         # name of output
@@ -131,14 +128,17 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_name_field.setContentsMargins(0, 0, 0, 0)
         output_name_field.setPlaceholderText("File Name")
 
-        output_names.append(output_name_field)
+        # adding the name field to a global variable that holds all output name fields
+        all_output_names.append(output_name_field)
 
+        # adding empty data into a dictionary - this is the final "recipe"
         output_data["Out " + str(outputs)] = {"Title": output_name_field.text()}
         for channel in channel_amount:
             output_data["Out " + str(outputs)].update({channel: None})
         print(output_data)
 
-        output_name_field.editingFinished.connect(lambda: self.update_output_title(output_data, output_name_field))
+        # call function to update output data title text when title is renamed
+        output_name_field.editingFinished.connect(lambda: self.update_output_title(output_data, output_name_field, current_output))
 
         # channel container
         output_channel_container = QGroupBox("", parent)
@@ -150,44 +150,60 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_channel_container_layout = QHBoxLayout()
         output_channel_container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # setting the layout
         output_channel_container.setLayout(output_channel_container_layout)
 
+        # creating the dropdowns for each channel
         for i in channel_amount:
             output = QComboBox(output_channel_container)
             output.addItem("Out " + i)
             output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
             output.setMaximumSize(200, 50)
-            output.currentTextChanged.connect(lambda: self.update_channel_dropdowns(output_data, output_channel_drops))
+
+            # call function to update output data dropdown text when text is changed
+            output.currentTextChanged.connect(lambda: self.update_channel_dropdowns(output_data, output_channel_drops, current_output))
 
             output_channel_container_layout.addWidget(output)
 
+            # populating the dropdown dictionary with each channel of this output
             output_channel_drops[str(i)] = output
+
+            # populating the dropdown list with all dropdowns of all outputs for use in adding inputs
             all_output_dropdowns.append(output)
+
+            for channels in all_channels_used:
+                output.addItem(channels)
 
         layout.addWidget(output_name_field)
         layout.addWidget(output_channel_container)
 
-    def update_output_title(self, output_data, output_name_field=QLineEdit):
-        output_data["Out " + str(outputs)].update({"Title": output_name_field.text()})
+    def update_output_title(self, output_data, output_name_field=QLineEdit, index=int):
+        output_data["Out " + str(index)].update({"Title": output_name_field.text()})
         print(output_data)
 
-    def update_channel_dropdowns(self, output_data, output_channel_drops):
+    def update_channel_dropdowns(self, output_data, output_channel_drops, index=int):
         for key, dropdowns in output_channel_drops.items():
-                output_data["Out " + str(outputs)].update({key: dropdowns.currentText()})
+                output_data["Out " + str(index)].update({key: dropdowns.currentText()})
         print(output_data)
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
+        all_channels_used.clear()
         all_output_dropdowns.clear()
-        self.BaseColorButton.setEnabled(False)
-        self.NormalsButton.setEnabled(False)
-        self.RoughnessButton.setEnabled(False)
-        self.MetalnessButton.setEnabled(False)
-        self.AOButton.setEnabled(False)
-        self.HeightButton.setEnabled(False)
-        self.EmissiveButton.setEnabled(False)
+        output_data.clear()
+
+        global outputs
+        outputs = 0
+
+        self.BaseColorButton.setEnabled(True)
+        self.NormalsButton.setEnabled(True)
+        self.RoughnessButton.setEnabled(True)
+        self.MetalnessButton.setEnabled(True)
+        self.AOButton.setEnabled(True)
+        self.HeightButton.setEnabled(True)
+        self.EmissiveButton.setEnabled(True)
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
@@ -200,7 +216,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         widget.setCurrentIndex(3)
 
     def save_preset(self):
-        print(output_dict)
+        print("Save Preset")
 
 #------------------------------------------------------
 
@@ -228,7 +244,9 @@ app = QApplication(sys.argv)
 
 outputs = 0
 output_data = {}
+all_output_names = []
 all_output_dropdowns = []
+all_channels_used = []
 
 #initialize windows
 mainmenu = MainMenu()
