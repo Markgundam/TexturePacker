@@ -45,15 +45,12 @@ class PresetMaker(QtWidgets.QMainWindow):
         json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
         print(json_files)
 
-        global output_names_box
         output_names_box = self.OutputNamesBox
         output_names_box.setContentsMargins(0, 0, 0, 0)
 
-        global output_names_box_layout
         output_names_box_layout = QVBoxLayout()
         output_names_box.setLayout(output_names_box_layout)
 
-        global output_spacer
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         for json_file in json_files:
@@ -79,7 +76,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, output_names_box, output_names_box_layout, ["R", "G", "B"], output_spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
 
         # back to main menu button
@@ -217,7 +214,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         json.dump(output_data, output_file, indent=4)
         output_file.close()
 
-    def load_file(self, namebox=QComboBox):
+    def load_file(self, namebox=QComboBox, output_names_box=QGroupBox, output_names_box_layout=QVBoxLayout, channel_amount=[], output_spacer=QSpacerItem):
 
         if namebox.currentText().endswith(".json"):
             print("Loading JSON file")
@@ -225,9 +222,20 @@ class PresetMaker(QtWidgets.QMainWindow):
                 data = json_file.read()
                 parsed_data = json.loads(data)
 
-        for key in parsed_data.keys():
-            self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"])
-            #print(parsed_data[key])
+            for outputfile, value in parsed_data.items():
+                parsed_title = parsed_data[outputfile]["Title"]
+                parsed_channels = parsed_data[outputfile]
+                parsed_channel_values = parsed_data[outputfile]["R"], parsed_data[outputfile]["G"], parsed_data[outputfile]["B"], parsed_data[outputfile]["A"]
+
+                #if ('BaseColor: R' in value):
+                    #self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])
+
+                parsed_channels.pop("Title")
+
+                self.include_output(output_names_box, output_names_box_layout)
+                self.output_spacer_manager(output_names_box_layout, output_spacer)
+
+
 
         else:
             print("Loading EMPTY file")
