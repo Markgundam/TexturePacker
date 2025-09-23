@@ -10,27 +10,6 @@ from PyQt5 import QtWidgets, QtCore
 
 #------------------------------------------------------
 
-class OutputRGBMap():
-    def __init__(self, OutputType="RGB", R=bool, G=bool, B=bool):
-        super(OutputRGBMap, self).__init__()
-        self.OutputType = OutputType
-        self.R = R
-        self.G = G
-        self.B = B
-
-        output_name_field = QLineEdit("", parent)
-        output_name_field.setMaximumHeight(33)
-        output_name_field.setContentsMargins(0, 0, 0, 0)
-        output_name_field.setPlaceholderText("File Name")
-
-# ------------------------------------------------------
-
-#class OutputRGBAMap(OutputType="RGBA", R=bool, G=bool, B=bool, A=bool):
- #   def __init__(self):
-  #    super(OutputRGBAMap, self).__init__()
-
-#------------------------------------------------------
-
 class MainMenu(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainMenu, self).__init__()
@@ -66,16 +45,19 @@ class PresetMaker(QtWidgets.QMainWindow):
         json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
         print(json_files)
 
+        global output_names_box
         output_names_box = self.OutputNamesBox
         output_names_box.setContentsMargins(0, 0, 0, 0)
 
+        global output_names_box_layout
         output_names_box_layout = QVBoxLayout()
         output_names_box.setLayout(output_names_box_layout)
 
+        global output_spacer
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         for json_file in json_files:
-            json_file = str.removesuffix(json_file, '.json')
+            #json_file = str.removesuffix(json_file, '.json')
             self.NameBox.addItem(json_file)
 
         # inputs buttons
@@ -97,7 +79,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(json_file))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox))
         self.RenameButton.clicked.connect(self.open_rename_window)
 
         # back to main menu button
@@ -117,12 +99,12 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         print(all_channels_used)
 
-    def include_output(self, output_names_box=QGroupBox, output_box_layout=QVBoxLayout, channel_amount=[]):
+    def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = []):
 
         global outputs
         outputs += 1
 
-        self.add_output( output_names_box, output_box_layout, channel_amount)
+        self.add_output(output_names_box, output_box_layout, channel_amount)
 
     def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[]):
 
@@ -227,16 +209,29 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def save_preset(self):
         presetname = self.NameBox.currentText()
-        output_data_str = ", ".join(f"{k}:{v}" for k, v in output_data.items())
 
-        print(f"File: {presetname}: {os.linesep} {output_data_str}")
+        #output_data_str = ", ".join(f"{k}:{v}" for k, v in output_data.items())
+        #print(f"File: {presetname}: {os.linesep} {output_data_str}")
 
         output_file = open(f"{presetname}.json", "w")
-        json.dump(output_data, output_file)
+        json.dump(output_data, output_file, indent=4)
         output_file.close()
 
-    def load_file(self, filename):
-        print("Loading file")
+    def load_file(self, namebox=QComboBox):
+
+        if namebox.currentText().endswith(".json"):
+            print("Loading JSON file")
+            with open(namebox.currentText(), "r") as json_file:
+                data = json_file.read()
+                parsed_data = json.loads(data)
+
+        for key in parsed_data.keys():
+            self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"])
+            #print(parsed_data[key])
+
+        else:
+            print("Loading EMPTY file")
+
 
 #------------------------------------------------------
 
