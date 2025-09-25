@@ -1,12 +1,12 @@
 ﻿import json
 import os
 import sys
-from ftplib import all_errors
 
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
-    QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox
+    QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox, QFileDialog
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore
+from PIL import Image
 
 #------------------------------------------------------
 
@@ -29,10 +29,89 @@ class PackTextures(QtWidgets.QMainWindow):
     def __init__(self):
         super(PackTextures, self).__init__()
         loadUi("PackTextures.ui", self)
+
         self.BackButton.clicked.connect(self.back_to_mainmenu)
+        self.PresetChooser.clear()
+        self.PresetChooser.addItem("Create new...")
+        self.PresetChooser.setCurrentIndex(0)
+
+        json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
+
+        for json_file in json_files:
+            self.PresetChooser.addItem(json_file)
+
+        self.PresetChooser.currentIndexChanged.connect(lambda: self.load_preset(self.PresetChooser, outputs_to_pack))
+
+        self.LoadFilesButton.clicked.connect(self.load_files)
+
+    def load_preset(self, namebox=QComboBox, outputs_to_pack=None):
+        if namebox.currentText().endswith(".json"):
+            with open(namebox.currentText(), "r") as json_file:
+                data = json_file.read()
+                parsed_data = json.loads(data)
+
+            self.show_message("Preset Loaded")
+
+            for outputfile, value in parsed_data.items():
+
+                parsed_title = value["Title"]
+
+                parsed_channels = value
+                parsed_channels.pop("Title")
+
+                output_channels = []
+
+                for channel in value:
+                    output_channels.append(value[f"{channel}"])
+
+                output = {"Suffix": parsed_title, "Channels": output_channels}
+
+                print(output)
+
+        else:
+            self.show_message("Choose a .json preset >>>")
+
+    def show_message(self, message=str):
+        self.Notification.setText(message)
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
+
+    def load_files(self):
+        file_dialog = QFileDialog()
+        file_dialog.setWindowTitle("Open File")
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
+
+        dir_path = r"C:/Users/Mark/Documents/GitHub/TexturePacker/"
+
+        all_image_channels = {}
+
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            for filename in selected_files:
+                filename = filename.removeprefix(dir_path)
+                self.InputList.addItem(filename)
+
+        for file in selected_files:
+            img = Image.open(file)
+            image_r = img.getchannel("R")
+            image_g = img.getchannel("G")
+            image_b = img.getchannel("B")
+
+            if "_A" in file:
+                all_image_channels["BaseColor"] = image_r, image_g, image_b
+            elif "_N" in file:
+                all_image_channels["Normals"] = image_r, image_g, image_b
+            elif "_O" in file:
+                all_image_channels["Occlusion"] = image_r, image_g, image_b
+            elif "_H" in file:
+                all_image_channels["Height"] = image_r, image_g, image_b
+            elif "_R" in file:
+                all_image_channels["Roughness"] = image_r, image_g, image_b
+
+        for key, image_channels in all_image_channels.items():
+            print(key + ":" + str(image_channels))
 
 #------------------------------------------------------
 
@@ -41,9 +120,15 @@ class PresetMaker(QtWidgets.QMainWindow):
         super(PresetMaker, self).__init__()
         loadUi("PresetMaker.ui", self)
 
-        path_to_json = os.path.dirname(os.path.abspath(__file__))
+        self.NameBox.clear()
+        self.NameBox.addItem("Create new...")
+        self.NameBox.setCurrentIndex(0)
+
         json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
         print(json_files)
+
+        for json_file in json_files:
+            self.NameBox.addItem(json_file)
 
         output_names_box = self.OutputNamesBox
         output_names_box.setContentsMargins(0, 0, 0, 0)
@@ -52,10 +137,6 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_names_box.setLayout(output_names_box_layout)
 
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        for json_file in json_files:
-            #json_file = str.removesuffix(json_file, '.json')
-            self.NameBox.addItem(json_file)
 
         # inputs buttons
         self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
@@ -67,6 +148,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
 
         # output buttons
+
         self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"], ""))
         self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
         self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"], ""))
@@ -95,12 +177,18 @@ class PresetMaker(QtWidgets.QMainWindow):
         for channel in channels:
             inputs_used.append(input_type + channel)
 
+        self.show_message(f"Added {input_type} to inputs")
+
     def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = [], parsed_title = str):
 
         global outputs
         outputs += 1
 
         self.add_output(output_names_box, output_box_layout, channel_amount, parsed_title)
+        if channel_amount == ["R", "G", "B"]:
+            self.show_message(f"Added RGB output")
+        else:
+            self.show_message(f"Added RGBA output")
 
     def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=str):
 
@@ -175,6 +263,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_data["Out " + str(index)].update({"Title": output_name_field.text()})
         print(output_data)
 
+        self.show_message(f"Renamed output {index} to {output_name_field.text()}")
+
     def update_channel_dropdowns(self, output_data, output_channel_drops, index=int):
         for key, dropdowns in output_channel_drops.items():
                 output_data["Out " + str(index)].update({key: dropdowns.currentText()})
@@ -217,6 +307,18 @@ class PresetMaker(QtWidgets.QMainWindow):
         json.dump(output_data, output_file, indent=4)
         output_file.close()
 
+        path_to_json = os.path.dirname(os.path.abspath(__file__))
+        json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
+
+        self.NameBox.clear()
+        self.NameBox.addItem("Create new...")
+        self.NameBox.setCurrentIndex(0)
+
+        for json_file in json_files:
+            self.NameBox.addItem(json_file)
+
+        self.show_message("Preset Saved")
+
     def delete_preset(self, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
 
         presetname = self.NameBox.currentText()
@@ -226,13 +328,13 @@ class PresetMaker(QtWidgets.QMainWindow):
             self.include_reset_outputs(output_names_box_layout, output_spacer)
             self.NameBox.removeItem(self.NameBox.currentIndex())
             self.NameBox.setCurrentIndex(0)
+            self.show_message("Preset Deleted")
         else:
             print("The file does not exist")
 
     def load_file(self, namebox=QComboBox, output_names_box=QGroupBox, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
 
         if namebox.currentText().endswith(".json"):
-            print("Loading JSON file")
             with open(namebox.currentText(), "r") as json_file:
                 data = json_file.read()
                 parsed_data = json.loads(data)
@@ -274,12 +376,16 @@ class PresetMaker(QtWidgets.QMainWindow):
                 if index >= 0:
                     dropdown.setCurrentIndex(index)
 
+            self.show_message("Preset Loaded")
+
         else:
-            print("Loading EMPTY file")
+            self.show_message("Empty Preset Loaded")
             inputs_used.clear()
             self.DeleteButton.setEnabled(False)
             self.include_reset_outputs(output_names_box_layout, output_spacer)
 
+    def show_message(self, message=str):
+        self.Notification.setText(message)
 
 #------------------------------------------------------
 
@@ -317,6 +423,10 @@ inputs_used = []
 all_output_names = []
 all_output_dropdowns = []
 all_channels_used_in_preset = {}
+
+path_to_json = os.path.dirname(os.path.abspath(__file__))
+
+outputs_to_pack = 0
 
 #initialize windows
 mainmenu = MainMenu()
