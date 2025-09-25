@@ -67,17 +67,18 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
 
         # output buttons
-        self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"]))
+        self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"], ""))
         self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
-        self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"]))
+        self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"], ""))
         self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
         # reset button
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, output_names_box, output_names_box_layout, ["R", "G", "B"], output_spacer))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, output_names_box, output_names_box_layout, output_spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
+        self.DeleteButton.clicked.connect(lambda: self.delete_preset(output_names_box_layout, output_spacer))
 
         # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
@@ -92,18 +93,16 @@ class PresetMaker(QtWidgets.QMainWindow):
                 QComboBox.addItem(input_type + ": " + channel)
 
         for channel in channels:
-            all_channels_used.append(input_type + ": " + channel)
+            inputs_used.append(input_type + channel)
 
-        print(all_channels_used)
-
-    def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = []):
+    def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = [], parsed_title = str):
 
         global outputs
         outputs += 1
 
-        self.add_output(output_names_box, output_box_layout, channel_amount)
+        self.add_output(output_names_box, output_box_layout, channel_amount, parsed_title)
 
-    def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[]):
+    def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=str):
 
         current_output = outputs
 
@@ -111,7 +110,11 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_channel_drops = {}
 
         # name of output
-        output_name_field = QLineEdit("", parent)
+        if(parsed_title == ""):
+            output_name_field = QLineEdit("", parent)
+        else:
+            output_name_field = QLineEdit(parsed_title, parent)
+
         output_name_field.setMaximumHeight(33)
         output_name_field.setContentsMargins(0, 0, 0, 0)
         output_name_field.setPlaceholderText("File Name")
@@ -121,9 +124,9 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         # adding empty data into a dictionary - this is the final "recipe"
         output_data["Out " + str(outputs)] = {"Title": output_name_field.text()}
+
         for channel in channel_amount:
             output_data["Out " + str(outputs)].update({channel: None})
-        print(output_data)
 
         # call function to update output data title text when title is renamed
         output_name_field.editingFinished.connect(lambda: self.update_output_title(output_data, output_name_field, current_output))
@@ -148,6 +151,9 @@ class PresetMaker(QtWidgets.QMainWindow):
             output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
             output.setMaximumSize(200, 50)
 
+            for inputs in inputs_used:
+                output.addItem(inputs)
+
             # call function to update output data dropdown text when text is changed
             output.currentTextChanged.connect(lambda: self.update_channel_dropdowns(output_data, output_channel_drops, current_output))
 
@@ -159,7 +165,7 @@ class PresetMaker(QtWidgets.QMainWindow):
             # populating the dropdown list with all dropdowns of all outputs for use in adding inputs
             all_output_dropdowns.append(output)
 
-            for channels in all_channels_used:
+            for channels in all_channels_used_in_preset:
                 output.addItem(channels)
 
         layout.addWidget(output_name_field)
@@ -178,7 +184,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.removeItem(spacer)
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
-        all_channels_used.clear()
+        all_channels_used_in_preset.clear()
         all_output_dropdowns.clear()
         output_data.clear()
 
@@ -202,19 +208,28 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def open_rename_window(self, index=int):
         widget.setCurrentIndex(3)
-        print(index)
 
     def save_preset(self):
-        presetname = self.NameBox.currentText()
 
-        #output_data_str = ", ".join(f"{k}:{v}" for k, v in output_data.items())
-        #print(f"File: {presetname}: {os.linesep} {output_data_str}")
+        presetname = self.NameBox.currentText()
 
         output_file = open(f"{presetname}.json", "w")
         json.dump(output_data, output_file, indent=4)
         output_file.close()
 
-    def load_file(self, namebox=QComboBox, output_names_box=QGroupBox, output_names_box_layout=QVBoxLayout, channel_amount=[], output_spacer=QSpacerItem):
+    def delete_preset(self, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
+
+        presetname = self.NameBox.currentText()
+
+        if os.path.exists(presetname):
+            os.remove(presetname)
+            self.include_reset_outputs(output_names_box_layout, output_spacer)
+            self.NameBox.removeItem(self.NameBox.currentIndex())
+            self.NameBox.setCurrentIndex(0)
+        else:
+            print("The file does not exist")
+
+    def load_file(self, namebox=QComboBox, output_names_box=QGroupBox, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
 
         if namebox.currentText().endswith(".json"):
             print("Loading JSON file")
@@ -222,23 +237,48 @@ class PresetMaker(QtWidgets.QMainWindow):
                 data = json_file.read()
                 parsed_data = json.loads(data)
 
+            inputs_used.clear()
+            self.DeleteButton.setEnabled(True)
+            self.include_reset_outputs(output_names_box_layout, output_spacer)
+            parsed_channel_values = []
+
             for outputfile, value in parsed_data.items():
-                parsed_title = parsed_data[outputfile]["Title"]
-                parsed_channels = parsed_data[outputfile]
-                parsed_channel_values = parsed_data[outputfile]["R"], parsed_data[outputfile]["G"], parsed_data[outputfile]["B"], parsed_data[outputfile]["A"]
+                parsed_title = value["Title"]
 
-                #if ('BaseColor: R' in value):
-                    #self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])
-
+                parsed_channels = value
                 parsed_channels.pop("Title")
 
-                self.include_output(output_names_box, output_names_box_layout)
+                for channel in value:
+                    parsed_channel_values.append(value[f"{channel}"])
+
+                self.include_output(output_names_box, output_names_box_layout, parsed_channels, parsed_title)
                 self.output_spacer_manager(output_names_box_layout, output_spacer)
 
+                if 'BaseColor: R' in parsed_channel_values:
+                    self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])
+                if 'Normals: R' in parsed_channel_values:
+                    self.include_input("Normals", self.NormalsButton, ["R", "G", "B"])
+                if 'Roughness: R' in parsed_channel_values:
+                    self.include_input("Roughness", self.RoughnessButton, ["R"])
+                if 'Metalness: R' in parsed_channel_values:
+                    self.include_input("Metalness", self.MetalnessButton, ["R"])
+                if 'AO: R' in parsed_channel_values:
+                    self.include_input("AO", self.AOButton, ["R"])
+                if 'Height: R' in parsed_channel_values:
+                    self.include_input("Height", self.HeightButton, ["R"])
+                if 'Emissive: R' in parsed_channel_values:
+                    self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"])
 
+            for dropdown, channel in zip(all_output_dropdowns, parsed_channel_values):
+                index = dropdown.findText(channel)
+                if index >= 0:
+                    dropdown.setCurrentIndex(index)
 
         else:
             print("Loading EMPTY file")
+            inputs_used.clear()
+            self.DeleteButton.setEnabled(False)
+            self.include_reset_outputs(output_names_box_layout, output_spacer)
 
 
 #------------------------------------------------------
@@ -273,9 +313,10 @@ app = QApplication(sys.argv)
 
 outputs = 0
 output_data = {}
+inputs_used = []
 all_output_names = []
 all_output_dropdowns = []
-all_channels_used = []
+all_channels_used_in_preset = {}
 
 #initialize windows
 mainmenu = MainMenu()
