@@ -31,14 +31,18 @@ class PackTextures(QtWidgets.QMainWindow):
         loadUi("PackTextures.ui", self)
 
         self.outputs_to_pack = {}
-        self.all_image_channels = {}
+        self.texture_sets = {}
         self.basename = ""
+        self.selected_files = []
+
+        self.required_inputs = set()
+        self.loaded_inputs = set()
 
         self.BackButton.clicked.connect(self.back_to_mainmenu)
         self.refresh_json_dropdown()
 
         self.PresetChooser.currentIndexChanged.connect(lambda: self.load_preset(self.PresetChooser))
-        self.PackButton.clicked.connect(lambda: self.pack_textures(self.all_image_channels, self.outputs_to_pack))
+        self.PackButton.clicked.connect(lambda: self.pack_textures(self.outputs_to_pack))
 
         self.LoadFilesButton.setEnabled(False)
         self.LoadFilesButton.clicked.connect(self.load_files)
@@ -46,7 +50,7 @@ class PackTextures(QtWidgets.QMainWindow):
         self.PackButton.setEnabled(False)
 
     def refresh_json_dropdown(self):
-        self.PresetChooser.blockSignals(True)  # prevent triggering load_preset while refreshing
+        self.PresetChooser.blockSignals(True)
         self.PresetChooser.clear()
         self.PresetChooser.addItem("Create new...")
         self.PresetChooser.setCurrentIndex(0)
@@ -57,33 +61,35 @@ class PackTextures(QtWidgets.QMainWindow):
 
         self.PresetChooser.blockSignals(False)
 
-    def load_preset(self, namebox=QComboBox):
-
-        if namebox.currentText().endswith(".json"):
-            with open(namebox.currentText(), "r") as json_file:
-                data = json_file.read()
-                parsed_data = json.loads(data)
-
-            self.show_message("Preset Loaded")
-            self.LoadFilesButton.setEnabled(True)
-
-            self.outputs_to_pack.clear()
-
-            for outputfile, value in parsed_data.items():
-                parsed_title = value["Title"]
-                parsed_channels = value
-                parsed_channels.pop("Title")
-                output_channels = []
-
-                for channel in value:
-                    output_channels.append(value[f"{channel}"])
-
-                self.outputs_to_pack[parsed_title] = {"Channels": output_channels}
-
-            self.update_outputs()
-
-        else:
+    def load_preset(self, namebox=None):
+        if not namebox or not namebox.currentText().endswith(".json"):
             self.show_message("Choose a .json preset >>>")
+            return
+
+        with open(namebox.currentText(), "r") as json_file:
+            parsed_data = json.load(json_file)
+
+        self.show_message("Preset Loaded")
+        self.LoadFilesButton.setEnabled(True)
+
+        self.required_inputs.clear()
+        self.outputs_to_pack.clear()
+
+        for outputfile, value in parsed_data.items():
+            parsed_title = value["Title"]
+            parsed_channels = value.copy()
+            parsed_channels.pop("Title", None)
+            output_channels = []
+
+            for channel_key, channel_value in parsed_channels.items():
+                output_channels.append(channel_value)
+                input_name = channel_value.split(":")[0].strip()
+                self.required_inputs.add(input_name)
+
+            self.outputs_to_pack[parsed_title] = {"Channels": output_channels}
+
+        self.show_message(f"Preset Loaded. Requires: {', '.join(self.required_inputs)}")
+        self.update_outputs()
 
     def show_message(self, message=str):
         self.Notification.setText(message)
@@ -92,86 +98,138 @@ class PackTextures(QtWidgets.QMainWindow):
         widget.setCurrentIndex(0)
 
     def load_files(self):
-
         global basename
 
         self.InputList.clear()
+        self.loaded_inputs.clear()
+        self.texture_sets.clear()
 
         file_dialog = QFileDialog()
         file_dialog.setWindowTitle("Open File")
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
 
-        if file_dialog.exec():
-            selected_files = file_dialog.selectedFiles()
-            for filename in selected_files:
-                filename = filename.removeprefix(tex_path)
-                self.InputList.addItem(filename)
-                basename = filename[:-5]
+        if not file_dialog.exec():
+            return
 
-        self.PackButton.setEnabled(True)
+        selected_files = file_dialog.selectedFiles()
 
         for file in selected_files:
-            img = Image.open(file)
-            R = img.getchannel("R")
-            G = img.getchannel("G")
-            B = img.getchannel("B")
+            filename = os.path.basename(file)
+            self.InputList.addItem(filename)
 
-            if file.endswith("_B.png"):
-                self.all_image_channels["BaseColor"] = R, G, B
-            elif file.endswith("_N.png"):
-                self.all_image_channels["Normals"] = R, G, B
-            elif file.endswith("_O.png"):
-                self.all_image_channels["AO"] = R, G, B
-            elif file.endswith("_H.png"):
-                self.all_image_channels["Height"] = R, G, B
-            elif file.endswith("_R.png"):
-                self.all_image_channels["Roughness"] = R, G, B
+            filename_no_ext = os.path.splitext(os.path.basename(file))[0]  # Remove .png
+            if "_" in filename_no_ext:
+                parts = filename_no_ext.split("_")
+                basename = "_".join(parts[:-1])  # Everything except the last part (the channel suffix)
+            else:
+                basename = filename_no_ext
+
+            if basename not in self.texture_sets:
+                self.texture_sets[basename] = {}
+
+            img = Image.open(file)
+            R, G, B = img.getchannel("R"), img.getchannel("G"), img.getchannel("B")
+
+            if filename.endswith("_B.png"):
+                self.texture_sets[basename]["BaseColor"] = (R, G, B)
+            elif filename.endswith("_N.png"):
+                self.texture_sets[basename]["Normals"] = (R, G, B)
+            elif filename.endswith("_O.png"):
+                self.texture_sets[basename]["AO"] = (R, G, B)
+            elif filename.endswith("_H.png"):
+                self.texture_sets[basename]["Height"] = (R, G, B)
+            elif filename.endswith("_R.png"):
+                self.texture_sets[basename]["Roughness"] = (R, G, B)
+
+        basenames = list(self.texture_sets.keys())
+        self.show_message(f"Loaded sets: {', '.join(basenames)}")
+
+        missing = []
+        for name, channels in self.texture_sets.items():
+            missing_channels = self.required_inputs - set(channels.keys())
+            if missing_channels:
+                missing.append(f"{name} (missing {', '.join(missing_channels)})")
+
+        if missing:
+            self.show_message("Incomplete sets:\n" + "\n".join(missing))
+            self.PackButton.setEnabled(False)
+        else:
+            self.show_message("All sets complete. Ready to pack.")
+            self.PackButton.setEnabled(True)
 
         self.update_outputs()
 
     def update_outputs(self):
-
         self.OutputList.clear()
-        for key in self.outputs_to_pack.keys():
-            self.OutputList.addItem(f"{self.basename}{key}")
 
-    def pack_textures(self, all_image_channels = dict, outputs_to_pack = dict):
-
-        if not all_image_channels or not outputs_to_pack:
-            self.show_message("No files loaded or no outputs defined")
+        if not self.outputs_to_pack:
             return
 
-        for outputfiles, channels in outputs_to_pack.items():
+        if not self.texture_sets:
+            for key in self.outputs_to_pack.keys():
+                self.OutputList.addItem(f"{key}_.png")
+            return
 
-            img_channels = []
+        for basename in self.texture_sets.keys():
+            for output_name in self.outputs_to_pack.keys():
+                preview_filename = f"{basename}_{output_name}.png"
+                item = QtWidgets.QListWidgetItem(preview_filename)
 
-            for channel in channels["Channels"]:
-                channel_str = str(channel)
-                base_name = channel_str[:-3]
+                missing_channels = self.required_inputs - set(self.texture_sets[basename].keys())
+                if missing_channels:
+                    item.setForeground(QtCore.Qt.red)
+                    item.setToolTip(f"Missing: {', '.join(missing_channels)}")
+                else:
+                    item.setForeground(QtCore.Qt.darkGreen)
 
-                if base_name not in all_image_channels:
-                    self.show_message(f"Missing input for channel {channel}")
-                    return
+                self.OutputList.addItem(item)
 
-                if (channel_str[-1:] == "R"):
-                    img_channel = all_image_channels[channel_str[:-3]][0]
+    def pack_textures(self, outputs_to_pack=dict):
+        if not hasattr(self, "texture_sets") or not self.texture_sets:
+            self.show_message("No texture sets loaded!")
+            return
+
+        for basename, channels_dict in self.texture_sets.items():
+
+            missing = self.required_inputs - set(channels_dict.keys())
+            if missing:
+                self.show_message(f"Skipping {basename}, missing: {', '.join(missing)}")
+                continue
+
+            for outputfiles, channels in outputs_to_pack.items():
+                img_channels = []
+
+                for channel in channels["Channels"]:
+                    channel_str = str(channel)
+                    base_name = channel_str[:-3]
+
+                    if base_name not in channels_dict:
+                        self.show_message(f"Missing input for channel {channel} in set {basename}")
+                        break
+
+                    if channel_str[-1:] == "R":
+                        img_channel = channels_dict[base_name][0]
+                    elif channel_str[-1:] == "G":
+                        img_channel = channels_dict[base_name][1]
+                    elif channel_str[-1:] == "B":
+                        img_channel = channels_dict[base_name][2]
+
                     img_channels.append(img_channel)
-                elif (channel_str[-1:] == "G"):
-                    img_channel = all_image_channels[channel_str[:-3]][1]
-                    img_channels.append(img_channel)
-                elif (channel_str[-1:] == "B"):
-                    img_channel = all_image_channels[channel_str[:-3]][2]
-                    img_channels.append(img_channel)
+                    print(f"{basename} | {channel}: {img_channel}")
 
-                print(f"{channel}: {img_channel}")
+                else:
+                    try:
+                        if len(img_channels) > 3:
+                            image_packed = Image.merge("RGBA", tuple(img_channels))
 
-            if len(channels["Channels"]) > 3:
-                image_packed = Image.merge("RGBA", (img_channels[0], img_channels[1], img_channels[2], img_channels[3]))
-                image_packed.save(f"{tex_path}/{basename}{outputfiles}.png")
-            else:
-                image_packed = Image.merge("RGB", (img_channels[0], img_channels[1], img_channels[2]))
-                image_packed.save(f"{tex_path}/{basename}{outputfiles}.png")
+                        else:
+                            image_packed = Image.merge("RGB", tuple(img_channels))
+                        image_packed.save(f"{tex_path}/{basename}_{outputfiles}.png")
+                        self.show_message(f"Packed {basename}_{outputfiles}.png")
+
+                    except Exception as e:
+                        self.show_message(f"Failed to pack {basename}_{outputfiles}: {e}")
 
     def showEvent(self, event):
         self.refresh_json_dropdown()
@@ -492,10 +550,8 @@ QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use h
 app = QApplication(sys.argv)
 
 path_to_json = os.path.dirname(os.path.abspath(__file__))
-dir_path = r"C:/Users/Mark/Documents/GitHub/TexturePacker/"
-tex_path = r"C:/Users/Mark/Documents/GitHub/TexturePacker/Textures/"
-
-
+dir_path = os.path.dirname(os.path.abspath(__file__))
+tex_path = os.path.dirname(os.path.abspath(__file__))
 
 #initialize windows
 mainmenu = MainMenu()
