@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, Q
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore
 from PIL import Image
+from numpy.ma.core import outer
+
 
 #------------------------------------------------------
 
@@ -242,6 +244,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         super(PresetMaker, self).__init__()
         loadUi("PresetMaker.ui", self)
 
+        self.outputs = 0
         self.all_output_dropdowns = []
         self.input_used = []
         self.all_output_names = []
@@ -264,6 +267,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         output_names_box.setLayout(output_names_box_layout)
 
         output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.OpenConfigButton.clicked.connect(self.open_config)
 
         # inputs buttons
         self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
@@ -308,10 +313,10 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = [], parsed_title = str):
 
-        global outputs
-        outputs += 1
+        self.outputs += 1
 
         self.add_output(output_names_box, output_box_layout, channel_amount, parsed_title)
+
         if channel_amount == ["R", "G", "B"]:
             self.show_message(f"Added RGB output")
         else:
@@ -319,7 +324,7 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=str):
 
-        current_output = outputs
+        current_output = self.outputs
 
         # dictionary to hold all dropdowns of this specific output
         output_channel_drops = {}
@@ -338,10 +343,10 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.all_output_names.append(output_name_field)
 
         # adding empty data into a dictionary - this is the final "recipe"
-        self.output_data["Out " + str(outputs)] = {"Title": output_name_field.text()}
+        self.output_data["Out " + str(self.outputs)] = {"Title": output_name_field.text()}
 
         for channel in channel_amount:
-            self.output_data["Out " + str(outputs)].update({channel: None})
+            self.output_data["Out " + str(self.outputs)].update({channel: None})
 
         # call function to update output data title text when title is renamed
         output_name_field.editingFinished.connect(lambda: self.update_output_title(self.output_data, output_name_field, current_output))
@@ -519,6 +524,9 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.NameBox.blockSignals(False)
 
+    def open_config(self):
+        widget.setCurrentIndex(4)
+
 #------------------------------------------------------
 
 class RenamePreset(QtWidgets.QMainWindow):
@@ -543,6 +551,135 @@ class RenamePreset(QtWidgets.QMainWindow):
 
 # ------------------------------------------------------
 
+class ConfigBuilder(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(ConfigBuilder, self).__init__()
+        loadUi("ConfigBuilder.ui", self)
+
+        spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.input_data= {}
+        self.output_data = {}
+        self.input_amount = 0
+        self.output_amount = 0
+
+        self.InputTypesBox.setContentsMargins(0, 0, 0, 0)
+
+        self.BackButton.clicked.connect(self.back_to_presetmaker)
+        self.AddInputButton.clicked.connect(lambda: self.create_input(self.InputTypesBox, self.InputTypesBoxLayout))
+        self.AddInputButton.clicked.connect(lambda: self.spacer_manager(self.InputTypesBoxLayout, spacer))
+        self.AddOutputButton.clicked.connect(lambda: self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout))
+        self.AddOutputButton.clicked.connect(lambda: self.spacer_manager(self.OutputTypesBoxLayout, spacer))
+
+        self.UpdateConfigButton.clicked.connect(self.update_config)
+
+    def back_to_presetmaker(self):
+        widget.setCurrentIndex(2)
+
+    def spacer_manager(self, layout=QVBoxLayout, spacer=QSpacerItem):
+        layout.removeItem(spacer)
+        layout.addSpacerItem(spacer)
+
+    def create_input(self, parent=QGroupBox, layout=QVBoxLayout):
+        print("Creating Input")
+
+        self.input_amount += 1
+
+        channel_checkboxes = []
+
+        input_group = QGroupBox()
+        input_group.setMaximumHeight(40)
+        input_group.setFixedHeight(40)
+        input_group.setContentsMargins(0, 0, 0, 0)
+        input_group_layout = QHBoxLayout()
+
+        input_group.setLayout(input_group_layout)
+
+        input_title = QLineEdit()
+        input_title.setMaximumHeight(30)
+        input_title.setContentsMargins(0, 0, 0, 0)
+        input_title.setPlaceholderText("Input Title")
+
+        input_channel_container = QGroupBox("", parent)
+        input_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        input_channel_container.setMaximumHeight(20)
+        input_channel_container.setContentsMargins(0, 0, 0, 0)
+
+        input_channel_container_layout = QHBoxLayout()
+        input_channel_container_layout.setContentsMargins(0, 0, 0, 0)
+
+        input_channel_container.setLayout(input_channel_container_layout)
+
+        input_group_layout.addWidget(input_title)
+
+        channels = ["R", "G", "B", "A"]
+
+        for channel in channels:
+            input_checkbox = QCheckBox(f"{channel}: ", input_channel_container)
+            input_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
+            input_checkbox.setMaximumSize(50, 50)
+
+            input_group_layout.addWidget(input_checkbox)
+            channel_checkboxes.append(input_checkbox)
+
+        layout.addWidget(input_group)
+
+        self.input_data[self.input_amount] = ({"Title": input_title, "Channels": channel_checkboxes})
+        print(self.input_data)
+
+    def create_output(self, parent=QGroupBox, layout=QVBoxLayout):
+        print("Creating Output")
+
+        output_group = QGroupBox()
+        output_group.setMaximumHeight(40)
+        output_group.setFixedHeight(40)
+        output_group.setContentsMargins(0, 0, 0, 0)
+        output_group_layout = QHBoxLayout()
+
+        output_group.setLayout(output_group_layout)
+
+        output_title = QLineEdit()
+        output_title.setMaximumHeight(30)
+        output_title.setContentsMargins(0, 0, 0, 0)
+        output_title.setPlaceholderText("Output Title")
+
+        output_channel_container = QGroupBox("", parent)
+        output_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        output_channel_container.setMaximumHeight(20)
+        output_channel_container.setContentsMargins(0, 0, 0, 0)
+
+        output_channel_container_layout = QHBoxLayout()
+        output_channel_container_layout.setContentsMargins(0, 0, 0, 0)
+
+        output_channel_container.setLayout(output_channel_container_layout)
+
+        output_group_layout.addWidget(output_title)
+
+        channels = ["R", "G", "B", "A"]
+
+        for channel in channels:
+            output_checkbox = QCheckBox(f"{channel}: ", output_channel_container)
+            output_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
+            output_checkbox.setMaximumSize(50, 50)
+
+            output_group_layout.addWidget(output_checkbox)
+
+        layout.addWidget(output_group)
+
+    def update_config(self):
+
+        #self.output_data.update({"Title": title, "Channels": channel_states})
+        print(self.input_data)
+        #print(self.output_data)
+
+    def save_config(self):
+        print("Save Config")
+
+        with open(f"InputOutputConfig.json", "w") as output_file:
+            json.dump(self.output_data, output_file, indent=4)
+
+# ------------------------------------------------------
+
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
 
@@ -558,6 +695,7 @@ mainmenu = MainMenu()
 packtextures = PackTextures()
 presetmaker = PresetMaker()
 renamepreset = RenamePreset()
+configbuilder = ConfigBuilder()
 
 #set windows as stackedwidget
 widget = QtWidgets.QStackedWidget()
@@ -565,6 +703,7 @@ widget.addWidget(mainmenu)
 widget.addWidget(packtextures)
 widget.addWidget(presetmaker)
 widget.addWidget(renamepreset)
+widget.addWidget(configbuilder)
 
 #show main menu
 widget.setFixedHeight(mainmenu.height())
