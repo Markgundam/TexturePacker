@@ -5,9 +5,8 @@ import sys
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
     QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox, QFileDialog
 from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, sip
 from PIL import Image
-from numpy.ma.core import outer
 
 
 #------------------------------------------------------
@@ -556,22 +555,31 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         super(ConfigBuilder, self).__init__()
         loadUi("ConfigBuilder.ui", self)
 
-        spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.input_data= {}
+        self.all_input_titles = []
+        self.all_input_checkboxes = []
+        self.all_output_titles = []
+        self.all_output_checkboxes = []
+
+        self.input_data = {}
         self.output_data = {}
         self.input_amount = 0
         self.output_amount = 0
 
+        self.default_channels = {"R": False, "G": False, "B": False, "A": False}
+
         self.InputTypesBox.setContentsMargins(0, 0, 0, 0)
 
         self.BackButton.clicked.connect(self.back_to_presetmaker)
-        self.AddInputButton.clicked.connect(lambda: self.create_input(self.InputTypesBox, self.InputTypesBoxLayout))
-        self.AddInputButton.clicked.connect(lambda: self.spacer_manager(self.InputTypesBoxLayout, spacer))
-        self.AddOutputButton.clicked.connect(lambda: self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout))
-        self.AddOutputButton.clicked.connect(lambda: self.spacer_manager(self.OutputTypesBoxLayout, spacer))
+        self.AddInputButton.clicked.connect(lambda: self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, "", self.default_channels))
+        self.AddInputButton.clicked.connect(lambda: self.spacer_manager(self.InputTypesBoxLayout, self.spacer))
+        self.AddOutputButton.clicked.connect(lambda: self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, "", self.default_channels))
+        self.AddOutputButton.clicked.connect(lambda: self.spacer_manager(self.OutputTypesBoxLayout, self.spacer))
 
         self.UpdateConfigButton.clicked.connect(self.update_config)
+
+        self.load_config()
 
     def back_to_presetmaker(self):
         widget.setCurrentIndex(2)
@@ -580,7 +588,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         layout.removeItem(spacer)
         layout.addSpacerItem(spacer)
 
-    def create_input(self, parent=QGroupBox, layout=QVBoxLayout):
+    def create_input(self, parent=QGroupBox, layout=QVBoxLayout, title="", channels={}):
         print("Creating Input")
 
         self.input_amount += 1
@@ -600,6 +608,11 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         input_title.setContentsMargins(0, 0, 0, 0)
         input_title.setPlaceholderText("Input Title")
 
+        if title != "":
+            input_title.setText(title)
+
+        self.all_input_titles.append(input_title)
+
         input_channel_container = QGroupBox("", parent)
         input_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         input_channel_container.setMaximumHeight(20)
@@ -612,23 +625,31 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         input_group_layout.addWidget(input_title)
 
-        channels = ["R", "G", "B", "A"]
-
-        for channel in channels:
+        for channel, value in channels:
             input_checkbox = QCheckBox(f"{channel}: ", input_channel_container)
             input_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
             input_checkbox.setMaximumSize(50, 50)
 
+            input_checkbox.setChecked(value)
+
             input_group_layout.addWidget(input_checkbox)
             channel_checkboxes.append(input_checkbox)
 
+        self.all_input_checkboxes.append(channel_checkboxes)
+
+        delete_button = QPushButton("X")
+        delete_button.setMaximumSize(20, 20)
+        delete_button.clicked.connect(lambda: self.delete_input(input_group, 1))
+        input_group_layout.addWidget(delete_button)
+
         layout.addWidget(input_group)
 
-        self.input_data[self.input_amount] = ({"Title": input_title, "Channels": channel_checkboxes})
-        print(self.input_data)
-
-    def create_output(self, parent=QGroupBox, layout=QVBoxLayout):
+    def create_output(self, parent=QGroupBox, layout=QVBoxLayout, title="", channels={}):
         print("Creating Output")
+
+        self.output_amount += 1
+
+        channel_checkboxes = []
 
         output_group = QGroupBox()
         output_group.setMaximumHeight(40)
@@ -643,6 +664,11 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         output_title.setContentsMargins(0, 0, 0, 0)
         output_title.setPlaceholderText("Output Title")
 
+        if title != "":
+            output_title.setText(title)
+
+        self.all_output_titles.append(output_title)
+
         output_channel_container = QGroupBox("", parent)
         output_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         output_channel_container.setMaximumHeight(20)
@@ -655,29 +681,102 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         output_group_layout.addWidget(output_title)
 
-        channels = ["R", "G", "B", "A"]
-
-        for channel in channels:
+        for channel, value in channels:
             output_checkbox = QCheckBox(f"{channel}: ", output_channel_container)
             output_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
             output_checkbox.setMaximumSize(50, 50)
 
+            output_checkbox.setChecked(value)
+
             output_group_layout.addWidget(output_checkbox)
+            channel_checkboxes.append(output_checkbox)
+
+        self.all_output_checkboxes.append(channel_checkboxes)
+
+        delete_button = QPushButton("X")
+        delete_button.setMaximumSize(20, 20)
+        delete_button.clicked.connect(lambda: self.delete_input(output_group, 0))
+        output_group_layout.addWidget(delete_button)
 
         layout.addWidget(output_group)
 
-    def update_config(self):
+    def delete_input(self, group=QGroupBox, input=bool):
+        if(input == 1):
+            self.input_amount -= 1
+        else:
+            self.output_amount -= 1
 
-        #self.output_data.update({"Title": title, "Channels": channel_states})
-        print(self.input_data)
-        #print(self.output_data)
+        group.deleteLater()
+        print(f"Inputs: {self.input_amount}, Outputs: {self.output_amount}")
 
     def save_config(self):
         print("Save Config")
 
-        with open(f"InputOutputConfig.json", "w") as output_file:
-            json.dump(self.output_data, output_file, indent=4)
+        final_data = {}
+        final_data["Inputs"] = self.input_data
+        final_data["Outputs"] = self.output_data
 
+        with open(f"InputOutputConfig.json", "w") as output_file:
+            json.dump(final_data, output_file, indent=4)
+
+    def is_alive(widget):
+        return isinstance(widget, QWidget) and not sip.isdeleted(widget)
+
+    def update_config(self):
+
+        for title, checkbox_set in zip(self.all_input_titles, self.all_input_checkboxes):
+            if title is None or sip.isdeleted(title):
+                continue
+            if any(cb is None or sip.isdeleted(cb) for cb in checkbox_set):
+                continue
+
+            title_str = str(title.text()).strip()
+            self.input_data[title_str] = {
+                "R": checkbox_set[0].isChecked(),
+                "G": checkbox_set[1].isChecked(),
+                "B": checkbox_set[2].isChecked(),
+                "A": checkbox_set[3].isChecked(),
+            }
+
+            print(f"Updated {title_str}: {self.input_data[title_str]}")
+
+        for title, checkbox_set in zip(self.all_output_titles, self.all_output_checkboxes):
+            if title is None or sip.isdeleted(title):
+                continue
+            if any(cb is None or sip.isdeleted(cb) for cb in checkbox_set):
+                continue
+
+            title_str = str(title.text()).strip()
+            self.output_data[title_str] = {
+                "R": checkbox_set[0].isChecked(),
+                "G": checkbox_set[1].isChecked(),
+                "B": checkbox_set[2].isChecked(),
+                "A": checkbox_set[3].isChecked(),
+            }
+
+            print(f"Updated {title_str}: {self.output_data[title_str]}")
+
+        self.save_config()
+
+    def load_config(self):
+        try:
+            with open(f"InputOutputConfig.json", "r") as json_file:
+                config = json.load(json_file)
+        except Exception as e:
+            self.show_message(f"Failed to load config: {e}")
+            return
+
+        print(config)
+
+        for data_type, data_title in config.items():
+            if(data_type == "Inputs"):
+                for title in data_title:
+                    self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, title, data_title[title].items())
+                    self.spacer_manager(self.InputTypesBoxLayout, self.spacer)
+            if(data_type == "Outputs"):
+                for title in data_title:
+                    self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, data_title[title].items())
+                    self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
 # ------------------------------------------------------
 
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling

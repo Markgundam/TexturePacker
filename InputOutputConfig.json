@@ -1,0 +1,66 @@
+{
+    "Inputs": {
+        "BaseColor": {
+            "R": true,
+            "G": true,
+            "B": true,
+            "A": false
+        },
+        "Normals": {
+            "R": true,
+            "G": true,
+            "B": true,
+            "A": false
+        },
+        "Roughness": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+        },
+        "Metalness": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+        },
+        "AO": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+        },
+        "Height": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+        },
+        "Emissive": {
+            "R": true,
+            "G": true,
+            "B": true,
+            "A": false
+        },
+        "Opacity": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+        }
+    },
+    "Outputs": {
+        "RGB": {
+            "R": true,
+            "G": true,
+            "B": true,
+            "A": false
+        },
+        "RGBA": {
+            "R": true,
+            "G": true,
+            "B": true,
+            "A": true
+        }
+    }
+}
