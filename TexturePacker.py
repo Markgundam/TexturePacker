@@ -14,7 +14,7 @@ from PIL import Image
 class MainMenu(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainMenu, self).__init__()
-        loadUi("MainMenu.ui", self)
+        loadUi("UI/MainMenu.ui", self)
         self.PackPresetsButton.clicked.connect(self.pack_textures_window)
         self.PackTexturesButton.clicked.connect(self.pack_presets_window)
 
@@ -29,7 +29,7 @@ class MainMenu(QtWidgets.QMainWindow):
 class PackTextures(QtWidgets.QMainWindow):
     def __init__(self):
         super(PackTextures, self).__init__()
-        loadUi("PackTextures.ui", self)
+        loadUi("UI/PackTextures.ui", self)
 
         self.outputs_to_pack = {}
         self.texture_sets = {}
@@ -241,7 +241,7 @@ class PackTextures(QtWidgets.QMainWindow):
 class PresetMaker(QtWidgets.QMainWindow):
     def __init__(self):
         super(PresetMaker, self).__init__()
-        loadUi("PresetMaker.ui", self)
+        loadUi("UI/PresetMaker.ui", self)
 
         self.outputs = 0
         self.all_output_dropdowns = []
@@ -556,7 +556,7 @@ class PresetMaker(QtWidgets.QMainWindow):
 class RenamePreset(QtWidgets.QMainWindow):
     def __init__(self):
         super(RenamePreset, self).__init__()
-        loadUi("RenamePreset.ui", self)
+        loadUi("UI/RenamePreset.ui", self)
 
         presetmaker = PresetMaker()
 
@@ -578,7 +578,7 @@ class RenamePreset(QtWidgets.QMainWindow):
 class ConfigBuilder(QtWidgets.QMainWindow):
     def __init__(self):
         super(ConfigBuilder, self).__init__()
-        loadUi("ConfigBuilder.ui", self)
+        loadUi("UI/ConfigBuilder.ui", self)
 
         self.spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
