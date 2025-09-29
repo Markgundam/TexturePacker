@@ -250,6 +250,9 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.output_data = {}
         self.all_channels_used_in_preset = {}
 
+        self.input_buttons = {}
+        self.output_buttons = {}
+
         self.NameBox.clear()
         self.NameBox.addItem("Create new...")
         self.NameBox.setCurrentIndex(0)
@@ -259,39 +262,61 @@ class PresetMaker(QtWidgets.QMainWindow):
         for json_file in json_files:
             self.NameBox.addItem(json_file)
 
-        output_names_box = self.OutputNamesBox
-        output_names_box.setContentsMargins(0, 0, 0, 0)
+        self.output_names_box = self.OutputNamesBox
+        self.output_names_box.setContentsMargins(0, 0, 0, 0)
 
-        output_names_box_layout = QVBoxLayout()
-        output_names_box.setLayout(output_names_box_layout)
+        self.output_names_box_layout = QVBoxLayout()
+        self.output_names_box.setLayout(self.output_names_box_layout)
 
-        output_spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.OpenConfigButton.clicked.connect(self.open_config)
 
-        # inputs buttons
-        self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
-        self.NormalsButton.clicked.connect(lambda: self.include_input("Normals", self.NormalsButton, ["R", "G", "B"]))
-        self.RoughnessButton.clicked.connect(lambda: self.include_input("Roughness", self.RoughnessButton, ["R"]))
-        self.MetalnessButton.clicked.connect(lambda: self.include_input("Metalness", self.MetalnessButton, ["R"]))
-        self.AOButton.clicked.connect(lambda: self.include_input("AO", self.AOButton, ["R"]))
-        self.HeightButton.clicked.connect(lambda: self.include_input("Height", self.HeightButton, ["R"]))
-        self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
+        try:
+            with open(f"InputOutputConfig.json", "r") as json_file:
+                config = json.load(json_file)
+        except Exception as e:
+            self.show_message(f"Failed to load config: {e}")
+            return
 
-        # output buttons
+        for data_type, data_title in config.items():
+            if (data_type == "Inputs"):
+                for title in data_title:
+                    self.input_buttons[title] = QPushButton(f"{title}")
+                    # self.input_buttons[title].clicked.connect(lambda: self.include_input([title], self.input_buttons[title], ["R", "G", "B"]))
+                    self.InputTypesBoxLayout.addWidget(self.input_buttons[title])
+                    self.output_spacer_manager(self.InputTypesBoxLayout, spacer)
+            if (data_type == "Outputs"):
+                for title in data_title:
+                    self.output_buttons[title] = QPushButton(f"{title}")
+                    # self.output_buttons[title].clicked.connect(lambda: self.include_output(self.output_names_box, self.output_names_box_layout, ["R", "G", "B"], ""))
+                    self.OutputTypesBoxLayout.addWidget(self.output_buttons[title])
+                    self.output_spacer_manager(self.OutputTypesBoxLayout, spacer)
 
-        self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"], ""))
-        self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
-        self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"], ""))
-        self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
+
+        # # inputs buttons
+        # self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
+        # self.NormalsButton.clicked.connect(lambda: self.include_input("Normals", self.NormalsButton, ["R", "G", "B"]))
+        # self.RoughnessButton.clicked.connect(lambda: self.include_input("Roughness", self.RoughnessButton, ["R"]))
+        # self.MetalnessButton.clicked.connect(lambda: self.include_input("Metalness", self.MetalnessButton, ["R"]))
+        # self.AOButton.clicked.connect(lambda: self.include_input("AO", self.AOButton, ["R"]))
+        # self.HeightButton.clicked.connect(lambda: self.include_input("Height", self.HeightButton, ["R"]))
+        # self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
+        #
+        # # output buttons
+        #
+        # self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"], ""))
+        # self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
+        # self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"], ""))
+        # self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
 
         # reset button
-        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(output_names_box_layout, output_spacer))
+        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.output_names_box_layout, spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, output_names_box, output_names_box_layout, output_spacer))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.output_names_box, self.output_names_box_layout, spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
-        self.DeleteButton.clicked.connect(lambda: self.delete_preset(output_names_box_layout, output_spacer))
+        self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.output_names_box_layout, spacer))
 
         # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
@@ -299,7 +324,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         # save preset file button
         self.SavePresetButton.clicked.connect(self.save_preset)
 
-    def include_input(self, input_type="", button=QPushButton, channels=[]):
+    def include_input(self, input_type=str, button=QPushButton, channels=[]):
         button.setEnabled(False)
         for QComboBox in self.all_output_dropdowns:
             for channel in channels:
@@ -567,14 +592,12 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         self.input_amount = 0
         self.output_amount = 0
 
-        self.default_channels = {"R": False, "G": False, "B": False, "A": False}
-
         self.InputTypesBox.setContentsMargins(0, 0, 0, 0)
 
         self.BackButton.clicked.connect(self.back_to_presetmaker)
-        self.AddInputButton.clicked.connect(lambda: self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, "", self.default_channels))
+        self.AddInputButton.clicked.connect(lambda: self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, "", {"R": False, "G": False, "B": False, "A": False}))
         self.AddInputButton.clicked.connect(lambda: self.spacer_manager(self.InputTypesBoxLayout, self.spacer))
-        self.AddOutputButton.clicked.connect(lambda: self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, "", self.default_channels))
+        self.AddOutputButton.clicked.connect(lambda: self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, "", {"R": False, "G": False, "B": False, "A": False}))
         self.AddOutputButton.clicked.connect(lambda: self.spacer_manager(self.OutputTypesBoxLayout, self.spacer))
 
         self.UpdateConfigButton.clicked.connect(self.update_config)
@@ -625,7 +648,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         input_group_layout.addWidget(input_title)
 
-        for channel, value in channels:
+        for channel, value in channels.items():
             input_checkbox = QCheckBox(f"{channel}: ", input_channel_container)
             input_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
             input_checkbox.setMaximumSize(50, 50)
@@ -681,7 +704,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         output_group_layout.addWidget(output_title)
 
-        for channel, value in channels:
+        for channel, value in channels.items():
             output_checkbox = QCheckBox(f"{channel}: ", output_channel_container)
             output_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
             output_checkbox.setMaximumSize(50, 50)
@@ -771,11 +794,11 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         for data_type, data_title in config.items():
             if(data_type == "Inputs"):
                 for title in data_title:
-                    self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, title, data_title[title].items())
+                    self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, title, data_title[title])
                     self.spacer_manager(self.InputTypesBoxLayout, self.spacer)
             if(data_type == "Outputs"):
                 for title in data_title:
-                    self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, data_title[title].items())
+                    self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, data_title[title])
                     self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
 # ------------------------------------------------------
 

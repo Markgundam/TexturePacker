@@ -55,162 +55,19 @@
     <property name="title">
      <string>Input Types</string>
     </property>
-    <widget class="QPushButton" name="BaseColorButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
+    <widget class="QWidget" name="verticalLayoutWidget">
      <property name="geometry">
       <rect>
        <x>0</x>
-       <y>20</y>
-       <width>161</width>
-       <height>30</height>
+       <y>19</y>
+       <width>160</width>
+       <height>401</height>
       </rect>
      </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Base Color (RGB)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="NormalsButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>50</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Normals (RGB)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="RoughnessButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>80</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Roughness (R)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="MetalnessButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>110</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Metalness (R)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="AOButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>140</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>AO (R)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="HeightButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>170</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Height (R)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="EmissiveButton">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>200</y>
-       <width>161</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Emissive (RGB)</string>
-     </property>
+     <layout class="QVBoxLayout" name="InputTypesBoxLayout"/>
     </widget>
    </widget>
-   <widget class="QGroupBox" name="groupBox_2">
+   <widget class="QGroupBox" name="OutputTypesBox">
     <property name="geometry">
      <rect>
       <x>840</x>
@@ -232,43 +89,16 @@
     <property name="title">
      <string>Output Types</string>
     </property>
-    <widget class="QPushButton" name="RGBButton">
+    <widget class="QWidget" name="verticalLayoutWidget_2">
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>20</y>
        <width>141</width>
-       <height>30</height>
+       <height>331</height>
       </rect>
      </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>RGB (3 Ch)</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="RGBAButton">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>50</y>
-       <width>141</width>
-       <height>30</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Montserrat Light</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>RGBA (4 Ch)</string>
-     </property>
+     <layout class="QVBoxLayout" name="OutputTypesBoxLayout"/>
     </widget>
    </widget>
    <widget class="QLabel" name="label_4">
