@@ -133,6 +133,7 @@ class PackTextures(QtWidgets.QMainWindow):
             img = Image.open(file)
             R, G, B = img.getchannel("R"), img.getchannel("G"), img.getchannel("B")
 
+            # UPDATE TO LOOP WITHIN CONFIG - ADD SUFFIX
             if filename.endswith("_B.png"):
                 self.texture_sets[basename]["BaseColor"] = (R, G, B)
             elif filename.endswith("_N.png"):
