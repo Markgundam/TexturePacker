@@ -306,7 +306,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.output_names_box, self.OutputTypesBoxLayout, spacer))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
         self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.OutputTypesBoxLayout, spacer))
 
@@ -454,20 +454,20 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.refresh_json_dropdown()
         self.show_message("Preset Saved")
 
-    def delete_preset(self, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
+    def delete_preset(self, output_names_box_layout=QVBoxLayout, spacer=QSpacerItem):
 
         presetname = self.NameBox.currentText()
 
         if os.path.exists(presetname):
             os.remove(presetname)
-            self.include_reset_outputs(output_names_box_layout, output_spacer)
+            self.include_reset_outputs(output_names_box_layout, spacer)
             self.NameBox.removeItem(self.NameBox.currentIndex())
             self.NameBox.setCurrentIndex(0)
             self.show_message("Preset Deleted")
         else:
             print("The file does not exist")
 
-    def load_file(self, namebox=QComboBox, output_names_box=QGroupBox, output_names_box_layout=QVBoxLayout, output_spacer=QSpacerItem):
+    def load_file(self, namebox=QComboBox, spacer=QSpacerItem):
 
         if namebox.currentText().endswith(".json"):
             try:
@@ -479,7 +479,7 @@ class PresetMaker(QtWidgets.QMainWindow):
 
             self.input_used.clear()
             self.DeleteButton.setEnabled(True)
-            self.include_reset_outputs(output_names_box_layout, output_spacer)
+            self.include_reset_outputs(self.OutputTypesBoxLayout, spacer)
             parsed_channel_values = []
 
             for outputfile, value in parsed_data.items():
@@ -491,8 +491,8 @@ class PresetMaker(QtWidgets.QMainWindow):
                 for channel in value:
                     parsed_channel_values.append(value[f"{channel}"])
 
-                self.include_output(output_names_box, output_names_box_layout, parsed_channels, parsed_title)
-                self.spacer_manager(output_names_box_layout, output_spacer)
+                self.include_output(parsed_channels, parsed_title)
+                self.spacer_manager(self.OutputTypesBoxLayout, spacer)
 
                 if 'BaseColor: R' in parsed_channel_values:
                     self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])
@@ -520,7 +520,7 @@ class PresetMaker(QtWidgets.QMainWindow):
             self.show_message("Empty Preset Loaded")
             self.input_used.clear()
             self.DeleteButton.setEnabled(False)
-            self.include_reset_outputs(output_names_box_layout, output_spacer)
+            self.include_reset_outputs(self.OutputTypesBoxLayout, spacer)
 
     def show_message(self, message=str):
         self.Notification.setText(message)
