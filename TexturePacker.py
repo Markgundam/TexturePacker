@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, Q
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore, sip
 from PIL import Image
+from functools import partial
 
 
 #------------------------------------------------------
@@ -262,11 +263,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         for json_file in json_files:
             self.NameBox.addItem(json_file)
 
-        self.output_names_box = self.OutputNamesBox
-        self.output_names_box.setContentsMargins(0, 0, 0, 0)
-
-        self.output_names_box_layout = QVBoxLayout()
-        self.output_names_box.setLayout(self.output_names_box_layout)
+        self.OutputTypesBox.setContentsMargins(0, 0, 0, 0)
 
         spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -279,44 +276,39 @@ class PresetMaker(QtWidgets.QMainWindow):
             self.show_message(f"Failed to load config: {e}")
             return
 
-        for data_type, data_title in config.items():
-            if (data_type == "Inputs"):
-                for title in data_title:
-                    self.input_buttons[title] = QPushButton(f"{title}")
-                    # self.input_buttons[title].clicked.connect(lambda: self.include_input([title], self.input_buttons[title], ["R", "G", "B"]))
-                    self.InputTypesBoxLayout.addWidget(self.input_buttons[title])
-                    self.output_spacer_manager(self.InputTypesBoxLayout, spacer)
-            if (data_type == "Outputs"):
-                for title in data_title:
-                    self.output_buttons[title] = QPushButton(f"{title}")
-                    # self.output_buttons[title].clicked.connect(lambda: self.include_output(self.output_names_box, self.output_names_box_layout, ["R", "G", "B"], ""))
-                    self.OutputTypesBoxLayout.addWidget(self.output_buttons[title])
-                    self.output_spacer_manager(self.OutputTypesBoxLayout, spacer)
+        for input_name, channels in config["Inputs"].items():
+            self.input_buttons[input_name] = QPushButton(input_name)
 
+            # get only active channels
+            active_channels = [ch for ch, enabled in channels.items() if enabled]
 
-        # # inputs buttons
-        # self.BaseColorButton.clicked.connect(lambda: self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"]))
-        # self.NormalsButton.clicked.connect(lambda: self.include_input("Normals", self.NormalsButton, ["R", "G", "B"]))
-        # self.RoughnessButton.clicked.connect(lambda: self.include_input("Roughness", self.RoughnessButton, ["R"]))
-        # self.MetalnessButton.clicked.connect(lambda: self.include_input("Metalness", self.MetalnessButton, ["R"]))
-        # self.AOButton.clicked.connect(lambda: self.include_input("AO", self.AOButton, ["R"]))
-        # self.HeightButton.clicked.connect(lambda: self.include_input("Height", self.HeightButton, ["R"]))
-        # self.EmissiveButton.clicked.connect(lambda: self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"]))
-        #
-        # # output buttons
-        #
-        # self.RGBButton.clicked.connect(lambda: self.include_output(output_names_box, output_names_box_layout, ["R", "G", "B"], ""))
-        # self.RGBButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
-        # self.RGBAButton.clicked.connect(lambda: self.include_output( output_names_box, output_names_box_layout, ["R", "G", "B", "A"], ""))
-        # self.RGBAButton.clicked.connect(lambda: self.output_spacer_manager(output_names_box_layout, output_spacer))
+            # connect dynamically
+            self.input_buttons[input_name].clicked.connect(
+                partial(self.include_input, input_name, self.input_buttons[input_name], active_channels)
+            )
+
+            self.InputTypesBoxLayout.addWidget(self.input_buttons[input_name])
+            self.spacer_manager(self.InputTypesBoxLayout, spacer)
+
+        for output_type, channels in config["Outputs"].items():
+            self.output_buttons[output_type] = QPushButton(output_type)
+
+            active_channels = [ch for ch, enabled in channels.items() if enabled]
+
+            self.output_buttons[output_type].clicked.connect(
+                partial(self.include_output, active_channels, output_type, spacer)
+            )
+
+            self.OutputTypesBoxLayout.addWidget(self.output_buttons[output_type])
+            self.spacer_manager(self.OutputTypesBoxLayout, spacer)
 
         # reset button
-        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.output_names_box_layout, spacer))
+        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.output_names_box, self.output_names_box_layout, spacer))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.output_names_box, self.OutputTypesBoxLayout, spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
-        self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.output_names_box_layout, spacer))
+        self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.OutputTypesBoxLayout, spacer))
 
         # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
@@ -324,27 +316,24 @@ class PresetMaker(QtWidgets.QMainWindow):
         # save preset file button
         self.SavePresetButton.clicked.connect(self.save_preset)
 
-    def include_input(self, input_type=str, button=QPushButton, channels=[]):
+    def include_input(self, input_name, button, channels):
         button.setEnabled(False)
-        for QComboBox in self.all_output_dropdowns:
+        for combo in self.all_output_dropdowns:
             for channel in channels:
-                QComboBox.addItem(input_type + ": " + channel)
+                combo.addItem(f"{input_name}: {channel}")
 
         for channel in channels:
-            self.input_used.append(input_type + channel)
+            self.input_used.append(f"{input_name}: {channel}")
 
-        self.show_message(f"Added {input_type} to inputs")
+        self.show_message(f"Added {input_name} to inputs")
 
-    def include_output(self, output_names_box = QGroupBox, output_box_layout = QVBoxLayout, channel_amount = [], parsed_title = str):
-
+    def include_output(self, channel_list, output_type="", spacer=None):
         self.outputs += 1
+        self.add_output(self.OutputTypesBox, self.OutputNamesBoxLayout, channel_list, "")
+        if spacer:
+            self.spacer_manager(self.OutputNamesBoxLayout, spacer)
 
-        self.add_output(output_names_box, output_box_layout, channel_amount, parsed_title)
-
-        if channel_amount == ["R", "G", "B"]:
-            self.show_message(f"Added RGB output")
-        else:
-            self.show_message(f"Added RGBA output")
+        self.show_message(f"Added {output_type} output")
 
     def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=str):
 
@@ -428,29 +417,29 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
+
+        # delete all widgets in the layout
         for i in reversed(range(layout.count())):
             layout.itemAt(i).widget().deleteLater()
+
+        # clear dynamic lists/dictionaries
         self.all_channels_used_in_preset.clear()
         self.all_output_dropdowns.clear()
         self.output_data.clear()
+        self.input_used.clear()
+        self.all_output_names.clear()
+        self.outputs = 0  # reset counter
 
-        global outputs
-        outputs = 0
-
-        self.BaseColorButton.setEnabled(True)
-        self.NormalsButton.setEnabled(True)
-        self.RoughnessButton.setEnabled(True)
-        self.MetalnessButton.setEnabled(True)
-        self.AOButton.setEnabled(True)
-        self.HeightButton.setEnabled(True)
-        self.EmissiveButton.setEnabled(True)
+        # enable all input buttons dynamically
+        for button in self.input_buttons.values():
+            button.setEnabled(True)
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
 
-    def output_spacer_manager(self, output_box_layout=QVBoxLayout, spacer=QSpacerItem):
-        output_box_layout.removeItem(spacer)
-        output_box_layout.addSpacerItem(spacer)
+    def spacer_manager(self, layout=QVBoxLayout, spacer=QSpacerItem):
+        layout.removeItem(spacer)
+        layout.addSpacerItem(spacer)
 
     def open_rename_window(self, index=int):
         widget.setCurrentIndex(3)
@@ -503,7 +492,7 @@ class PresetMaker(QtWidgets.QMainWindow):
                     parsed_channel_values.append(value[f"{channel}"])
 
                 self.include_output(output_names_box, output_names_box_layout, parsed_channels, parsed_title)
-                self.output_spacer_manager(output_names_box_layout, output_spacer)
+                self.spacer_manager(output_names_box_layout, output_spacer)
 
                 if 'BaseColor: R' in parsed_channel_values:
                     self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])

@@ -203,6 +203,17 @@
      <property name="checkable">
       <bool>false</bool>
      </property>
+     <widget class="QWidget" name="verticalLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>-1</y>
+        <width>641</width>
+        <height>401</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="OutputNamesBoxLayout"/>
+     </widget>
     </widget>
    </widget>
    <widget class="QPushButton" name="ResetButton">
