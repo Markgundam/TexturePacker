@@ -296,7 +296,7 @@ class PresetMaker(QtWidgets.QMainWindow):
             active_channels = [ch for ch, enabled in channels.items() if enabled]
 
             self.output_buttons[output_type].clicked.connect(
-                partial(self.include_output, active_channels, output_type, spacer)
+                partial(self.include_output, active_channels, "", spacer)
             )
 
             self.OutputTypesBoxLayout.addWidget(self.output_buttons[output_type])
@@ -327,79 +327,67 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.show_message(f"Added {input_name} to inputs")
 
-    def include_output(self, channel_list, output_type="", spacer=None):
+    def include_output(self, channel_list, parsed_title="", spacer=None):
         self.outputs += 1
-        self.add_output(self.OutputTypesBox, self.OutputNamesBoxLayout, channel_list, "")
+        self.add_output(self.OutputTypesBox, self.OutputNamesBoxLayout, channel_list, parsed_title)
+
         if spacer:
             self.spacer_manager(self.OutputNamesBoxLayout, spacer)
 
-        self.show_message(f"Added {output_type} output")
+        display_name = parsed_title if parsed_title else f"Output {self.outputs}"
+        self.show_message(f"Added {display_name} output")
 
-    def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=str):
+    def add_output(self, parent=QGroupBox, layout=QVBoxLayout, channel_amount=[], parsed_title=""):
 
         current_output = self.outputs
-
-        # dictionary to hold all dropdowns of this specific output
         output_channel_drops = {}
 
-        # name of output
-        if(parsed_title == ""):
-            output_name_field = QLineEdit("", parent)
-        else:
-            output_name_field = QLineEdit(parsed_title, parent)
-
+        # --- Output name field ---
+        output_name_field = QLineEdit(parsed_title, parent)
         output_name_field.setMaximumHeight(33)
-        output_name_field.setContentsMargins(0, 0, 0, 0)
         output_name_field.setPlaceholderText("File Name")
-
-        # adding the name field to a global variable that holds all output name fields
         self.all_output_names.append(output_name_field)
 
-        # adding empty data into a dictionary - this is the final "recipe"
-        self.output_data["Out " + str(self.outputs)] = {"Title": output_name_field.text()}
+        # Initialize output data dictionary
+        self.output_data[f"Out {current_output}"] = {"Title": parsed_title}
+        for ch in channel_amount:
+            self.output_data[f"Out {current_output}"][ch] = None
 
-        for channel in channel_amount:
-            self.output_data["Out " + str(self.outputs)].update({channel: None})
+        # Update title dynamically
+        output_name_field.editingFinished.connect(
+            partial(self.update_output_title, self.output_data, output_name_field, current_output)
+        )
 
-        # call function to update output data title text when title is renamed
-        output_name_field.editingFinished.connect(lambda: self.update_output_title(self.output_data, output_name_field, current_output))
-
-        # channel container
-        output_channel_container = QGroupBox("", parent)
-        output_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        # --- Channel container ---
+        output_channel_container = QGroupBox(parent)
+        output_channel_container.setLayoutDirection(QtCore.Qt.LeftToRight)
         output_channel_container.setMinimumHeight(40)
-        output_channel_container.setContentsMargins(0, 0, 0, 0)
+        layout_container = QHBoxLayout()
+        layout_container.setDirection(QHBoxLayout.LeftToRight)
+        output_channel_container.setLayout(layout_container)
 
-        # channel container layout
-        output_channel_container_layout = QHBoxLayout()
-        output_channel_container_layout.setContentsMargins(0, 0, 0, 0)
+        # --- Dropdowns for each channel ---
+        for ch in channel_amount:
+            combo = QComboBox(output_channel_container)
+            combo.addItem(f"Out {ch}")
+            combo.setMaximumSize(200, 50)
 
-        # setting the layout
-        output_channel_container.setLayout(output_channel_container_layout)
+            # Add existing inputs
+            for used_input in self.input_used:
+                combo.addItem(used_input)
 
-        # creating the dropdowns for each channel
-        for i in channel_amount:
-            output = QComboBox(output_channel_container)
-            output.addItem("Out " + i)
-            output.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
-            output.setMaximumSize(200, 50)
+            # Update output data when dropdown changes
+            combo.currentTextChanged.connect(
+                partial(self.update_channel_dropdowns, self.output_data, output_channel_drops, current_output)
+            )
 
-            for inputs in self.input_used:
-                output.addItem(inputs)
+            layout_container.addWidget(combo)
+            output_channel_drops[ch] = combo
+            self.all_output_dropdowns.append(combo)
 
-            # call function to update output data dropdown text when text is changed
-            output.currentTextChanged.connect(lambda: self.update_channel_dropdowns(self.output_data, output_channel_drops, current_output))
-
-            output_channel_container_layout.addWidget(output)
-
-            # populating the dropdown dictionary with each channel of this output
-            output_channel_drops[str(i)] = output
-
-            # populating the dropdown list with all dropdowns of all outputs for use in adding inputs
-            self.all_output_dropdowns.append(output)
-
-            for channels in self.all_channels_used_in_preset:
-                output.addItem(channels)
+            # Optionally, add previously used channels
+            for used_channel in self.all_channels_used_in_preset:
+                combo.addItem(used_channel)
 
         layout.addWidget(output_name_field)
         layout.addWidget(output_channel_container)
@@ -477,40 +465,44 @@ class PresetMaker(QtWidgets.QMainWindow):
                 self.show_message(f"Failed to load preset: {e}")
                 return
 
+            # Reset everything first
             self.input_used.clear()
+            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
             self.DeleteButton.setEnabled(True)
-            self.include_reset_outputs(self.OutputTypesBoxLayout, spacer)
-            parsed_channel_values = []
 
-            for outputfile, value in parsed_data.items():
-                parsed_title = value["Title"]
+            # Keep track of which inputs need to be enabled
+            used_inputs = {}
 
-                parsed_channels = value
-                parsed_channels.pop("Title")
+            # Recreate outputs dynamically
+            for output_key, value in parsed_data.items():
+                title = value.get("Title", "")
+                channels = {ch: val for ch, val in value.items() if ch != "Title"}
+                self.include_output(list(channels.keys()), title, spacer)
 
-                for channel in value:
-                    parsed_channel_values.append(value[f"{channel}"])
+                # mark inputs that appear in this output
+                for channel_val in channels.values():
+                    if channel_val:
+                        input_name = channel_val.split(":")[0]
+                        input_channel = channel_val.split(":")[1]
+                        if input_name not in used_inputs:
+                            used_inputs[input_name] = set()
+                        used_inputs[input_name].add(input_channel)
 
-                self.include_output(parsed_channels, parsed_title)
-                self.spacer_manager(self.OutputTypesBoxLayout, spacer)
+            # Enable inputs used in preset
+            for input_name, channels in used_inputs.items():
+                if input_name in self.input_buttons:
+                    self.include_input(input_name, self.input_buttons[input_name], list(channels))
 
-                if 'BaseColor: R' in parsed_channel_values:
-                    self.include_input("BaseColor", self.BaseColorButton, ["R", "G", "B"])
-                if 'Normals: R' in parsed_channel_values:
-                    self.include_input("Normals", self.NormalsButton, ["R", "G", "B"])
-                if 'Roughness: R' in parsed_channel_values:
-                    self.include_input("Roughness", self.RoughnessButton, ["R"])
-                if 'Metalness: R' in parsed_channel_values:
-                    self.include_input("Metalness", self.MetalnessButton, ["R"])
-                if 'AO: R' in parsed_channel_values:
-                    self.include_input("AO", self.AOButton, ["R"])
-                if 'Height: R' in parsed_channel_values:
-                    self.include_input("Height", self.HeightButton, ["R"])
-                if 'Emissive: R' in parsed_channel_values:
-                    self.include_input("Emissive", self.EmissiveButton, ["R", "G", "B"])
+            # Set dropdowns to the values in the preset
+            output_dropdowns = [dropdown for dropdown in self.all_output_dropdowns if dropdown.count() > 1]
+            channel_values = []
+            for output in parsed_data.values():
+                for ch, val in output.items():
+                    if ch != "Title" and val:
+                        channel_values.append(val)
 
-            for dropdown, channel in zip(self.all_output_dropdowns, parsed_channel_values):
-                index = dropdown.findText(channel)
+            for dropdown, value in zip(output_dropdowns, channel_values):
+                index = dropdown.findText(value)
                 if index >= 0:
                     dropdown.setCurrentIndex(index)
 
@@ -520,7 +512,7 @@ class PresetMaker(QtWidgets.QMainWindow):
             self.show_message("Empty Preset Loaded")
             self.input_used.clear()
             self.DeleteButton.setEnabled(False)
-            self.include_reset_outputs(self.OutputTypesBoxLayout, spacer)
+            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
 
     def show_message(self, message=str):
         self.Notification.setText(message)
