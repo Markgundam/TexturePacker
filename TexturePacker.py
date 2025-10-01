@@ -58,16 +58,17 @@ class PackTextures(QtWidgets.QMainWindow):
         self.PresetChooser.setCurrentIndex(0)
 
         json_files = [f for f in os.listdir('.') if f.endswith('.json')]
+
+        for file in json_files:
+            if file == "InputOutputConfig.json":
+                json_files.remove("InputOutputConfig.json")
+
         for json_file in json_files:
             self.PresetChooser.addItem(json_file)
 
         self.PresetChooser.blockSignals(False)
 
     def load_preset(self, namebox=None):
-        if not namebox or not namebox.currentText().endswith(".json"):
-            self.show_message("Choose a .json preset >>>")
-            return
-
         with open(namebox.currentText(), "r") as json_file:
             parsed_data = json.load(json_file)
 
@@ -259,42 +260,11 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.OutputTypesBox.setContentsMargins(0, 0, 0, 0)
 
-        spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.OpenConfigButton.clicked.connect(self.open_config)
 
-        try:
-            with open(f"InputOutputConfig.json", "r") as json_file:
-                config = json.load(json_file)
-        except Exception as e:
-            self.show_message(f"Failed to load config: {e}")
-            return
-
-        for input_name, channels in config["Inputs"].items():
-            self.input_buttons[input_name] = QPushButton(input_name)
-
-            # get only active channels
-            active_channels = [ch for ch, enabled in channels.items() if enabled]
-
-            # connect dynamically
-            self.input_buttons[input_name].clicked.connect(
-                partial(self.include_input, input_name, self.input_buttons[input_name], active_channels)
-            )
-
-            self.InputTypesBoxLayout.addWidget(self.input_buttons[input_name])
-            self.spacer_manager(self.InputTypesBoxLayout, spacer)
-
-        for output_type, channels in config["Outputs"].items():
-            self.output_buttons[output_type] = QPushButton(output_type)
-
-            active_channels = [ch for ch, enabled in channels.items() if enabled]
-
-            self.output_buttons[output_type].clicked.connect(
-                partial(self.include_output, active_channels, "", spacer)
-            )
-
-            self.OutputTypesBoxLayout.addWidget(self.output_buttons[output_type])
-            self.spacer_manager(self.OutputTypesBoxLayout, spacer)
+        self.setup_config()
 
         # reset button
         self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, spacer))
@@ -430,14 +400,11 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         presetname = self.NameBox.currentText()
 
-        if presetname == "Create new...":
-            with open(f"{presetname}.json", "w") as output_file:
-                json.dump(self.output_data, output_file, indent=4)
-        else:
-            with open(presetname, "w") as output_file:
-                json.dump(self.output_data, output_file, indent=4)
+        with open(presetname, "w") as output_file:
+            json.dump(self.output_data, output_file, indent=4)
             for file in renamepreset.renamedfiles:
-                os.remove(file)
+                if file != "Create new...":
+                    os.remove(file)
 
         self.refresh_json_dropdown()
         self.show_message("Preset Saved")
@@ -533,6 +500,51 @@ class PresetMaker(QtWidgets.QMainWindow):
     def open_config(self):
         widget.setCurrentIndex(4)
 
+    def clear_layout(self, layout=QVBoxLayout):
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    def setup_config(self):
+
+        self.clear_layout(self.InputTypesBoxLayout)
+        self.clear_layout(self.OutputTypesBoxLayout)
+
+        try:
+            with open(f"InputOutputConfig.json", "r") as json_file:
+                config = json.load(json_file)
+        except Exception as e:
+            self.show_message(f"Failed to load config: {e}")
+            return
+
+        for input_name, channels in config.get("Inputs", {}).items():
+            self.input_buttons[input_name] = QPushButton(input_name)
+
+            # get only active channels
+            active_channels = [ch for ch, enabled in channels.items() if enabled]
+
+            # connect dynamically
+            self.input_buttons[input_name].clicked.connect(
+                partial(self.include_input, input_name, self.input_buttons[input_name], active_channels)
+            )
+
+            self.InputTypesBoxLayout.addWidget(self.input_buttons[input_name])
+            self.spacer_manager(self.InputTypesBoxLayout, self.spacer)
+
+        for output_type, channels in config.get("Outputs", {}).items():
+            self.output_buttons[output_type] = QPushButton(output_type)
+
+            active_channels = [ch for ch, enabled in channels.items() if enabled]
+
+            self.output_buttons[output_type].clicked.connect(
+                partial(self.include_output, active_channels, "", self.spacer)
+            )
+
+            self.OutputTypesBoxLayout.addWidget(self.output_buttons[output_type])
+            self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
+
 #------------------------------------------------------
 
 class RenamePreset(QtWidgets.QMainWindow):
@@ -577,13 +589,16 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         self.spacer = QSpacerItem(40, 300, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.all_input_titles = []
+        self.all_input_suffixes = []
         self.all_input_checkboxes = []
+
         self.all_output_titles = []
         self.all_output_checkboxes = []
 
         self.input_data = {}
-        self.output_data = {}
         self.input_amount = 0
+
+        self.output_data = {}
         self.output_amount = 0
 
         self.InputTypesBox.setContentsMargins(0, 0, 0, 0)
@@ -624,10 +639,20 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         input_title.setContentsMargins(0, 0, 0, 0)
         input_title.setPlaceholderText("Input Title")
 
+        input_suffix = QLineEdit()
+        input_suffix.setMaximumHeight(30)
+        input_suffix.setFixedWidth(50)
+        input_suffix.setContentsMargins(0, 0, 0, 0)
+        input_suffix.setPlaceholderText("Suffix")
+
         if title != "":
             input_title.setText(title)
 
+        if "Suffix" in channels:
+            input_suffix.setText(channels["Suffix"])
+
         self.all_input_titles.append(input_title)
+        self.all_input_suffixes.append(input_suffix)
 
         input_channel_container = QGroupBox("", parent)
         input_channel_container.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
@@ -640,8 +665,11 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         input_channel_container.setLayout(input_channel_container_layout)
 
         input_group_layout.addWidget(input_title)
+        input_group_layout.addWidget(input_suffix)
 
         for channel, value in channels.items():
+            if channel == "Suffix":
+                continue
             input_checkbox = QCheckBox(f"{channel}: ", input_channel_container)
             input_checkbox.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
             input_checkbox.setMaximumSize(50, 50)
@@ -732,21 +760,24 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         final_data["Outputs"] = self.output_data
 
         with open(f"InputOutputConfig.json", "w") as output_file:
-            json.dump(final_data, output_file, indent=4)
+            json.dump(final_data, output_file, indent=5)
 
     def is_alive(widget):
         return isinstance(widget, QWidget) and not sip.isdeleted(widget)
 
     def update_config(self):
 
-        for title, checkbox_set in zip(self.all_input_titles, self.all_input_checkboxes):
+        for title, suffix, checkbox_set in zip(self.all_input_titles, self.all_input_suffixes, self.all_input_checkboxes):
             if title is None or sip.isdeleted(title):
+                continue
+            if suffix is None or sip.isdeleted(suffix):
                 continue
             if any(cb is None or sip.isdeleted(cb) for cb in checkbox_set):
                 continue
 
             title_str = str(title.text()).strip()
             self.input_data[title_str] = {
+                "Suffix": suffix.text(),
                 "R": checkbox_set[0].isChecked(),
                 "G": checkbox_set[1].isChecked(),
                 "B": checkbox_set[2].isChecked(),
@@ -773,24 +804,43 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         self.save_config()
 
+        presetmaker.setup_config()
+
     def load_config(self):
         try:
-            with open(f"InputOutputConfig.json", "r") as json_file:
+            with open("InputOutputConfig.json", "r") as json_file:
                 config = json.load(json_file)
         except Exception as e:
-            self.show_message(f"Failed to load config: {e}")
+            print(f"Failed to load config: {e}")
             return
 
         print(config)
 
+        def to_bool(val):
+            if isinstance(val, bool):
+                return val
+            if isinstance(val, str):
+                return val.strip().lower() == "true"
+            return False
+
         for data_type, data_title in config.items():
-            if(data_type == "Inputs"):
-                for title in data_title:
-                    self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, title, data_title[title])
+            if data_type == "Inputs":
+                for title, values in data_title.items():
+                    # Convert all R,G,B,A to booleans
+                    values["R"] = to_bool(values.get("R"))
+                    values["G"] = to_bool(values.get("G"))
+                    values["B"] = to_bool(values.get("B"))
+                    values["A"] = to_bool(values.get("A"))
+                    self.create_input(self.InputTypesBox, self.InputTypesBoxLayout, title, values)
                     self.spacer_manager(self.InputTypesBoxLayout, self.spacer)
-            if(data_type == "Outputs"):
-                for title in data_title:
-                    self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, data_title[title])
+
+            elif data_type == "Outputs":
+                for title, values in data_title.items():
+                    values["R"] = to_bool(values.get("R"))
+                    values["G"] = to_bool(values.get("G"))
+                    values["B"] = to_bool(values.get("B"))
+                    values["A"] = to_bool(values.get("A"))
+                    self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, values)
                     self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
 
 # ------------------------------------------------------
