@@ -1,0 +1,16 @@
+{
+    "Out 1": {
+        "Title": "adad",
+        "R": "BaseColor: R",
+        "G": "BaseColor: G",
+        "B": "BaseColor: B",
+        "A": "Normals: R"
+    },
+    "Out 2": {
+        "Title": "awdawd",
+        "R": "Normals: G",
+        "G": "Normals: B",
+        "B": "Roughness: R",
+        "A": "Metalness: R"
+    }
+}

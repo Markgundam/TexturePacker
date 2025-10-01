@@ -255,14 +255,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.input_buttons = {}
         self.output_buttons = {}
 
-        self.NameBox.clear()
-        self.NameBox.addItem("Create new...")
-        self.NameBox.setCurrentIndex(0)
-
-        json_files = [f for f in os.listdir('.') if f.endswith('.json')]
-
-        for json_file in json_files:
-            self.NameBox.addItem(json_file)
+        self.refresh_json_dropdown()
 
         self.OutputTypesBox.setContentsMargins(0, 0, 0, 0)
 
@@ -395,14 +388,12 @@ class PresetMaker(QtWidgets.QMainWindow):
 
     def update_output_title(self, output_data, output_name_field=QLineEdit, index=int):
         output_data["Out " + str(index)].update({"Title": output_name_field.text()})
-        print(output_data)
 
         self.show_message(f"Renamed output {index} to {output_name_field.text()}")
 
     def update_channel_dropdowns(self, output_data, output_channel_drops, index=int):
         for key, dropdowns in output_channel_drops.items():
                 output_data["Out " + str(index)].update({key: dropdowns.currentText()})
-        print(output_data)
 
     def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
@@ -437,8 +428,12 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         presetname = self.NameBox.currentText()
 
-        with open(f"{presetname}.json", "w") as output_file:
-            json.dump(self.output_data, output_file, indent=4)
+        if presetname == "Create new...":
+            with open(f"{presetname}.json", "w") as output_file:
+                json.dump(self.output_data, output_file, indent=4)
+        else:
+            with open(f"{presetname}.json", "a") as output_file:
+                json.dump(self.output_data, output_file, indent=4)
 
         self.refresh_json_dropdown()
         self.show_message("Preset Saved")
@@ -477,14 +472,14 @@ class PresetMaker(QtWidgets.QMainWindow):
             # Recreate outputs dynamically
             for output_key, value in parsed_data.items():
                 title = value.get("Title", "")
-                channels = {ch: val for ch, val in value.items() if ch != "Title"}
+                channels = {channel: value for channel, value in value.items() if channel != "Title"}
                 self.include_output(list(channels.keys()), title, spacer)
 
                 # mark inputs that appear in this output
                 for channel_val in channels.values():
                     if channel_val:
-                        input_name = channel_val.split(":")[0]
-                        input_channel = channel_val.split(":")[1]
+                        input_name = channel_val.split(": ")[0]
+                        input_channel = channel_val.split(": ")[1]
                         if input_name not in used_inputs:
                             used_inputs[input_name] = set()
                         used_inputs[input_name].add(input_channel)
@@ -498,9 +493,9 @@ class PresetMaker(QtWidgets.QMainWindow):
             output_dropdowns = [dropdown for dropdown in self.all_output_dropdowns if dropdown.count() > 1]
             channel_values = []
             for output in parsed_data.values():
-                for ch, val in output.items():
-                    if ch != "Title" and val:
-                        channel_values.append(val)
+                for channel, value in output.items():
+                    if channel != "Title" and value:
+                        channel_values.append(value)
 
             for dropdown, value in zip(output_dropdowns, channel_values):
                 index = dropdown.findText(value)
@@ -525,6 +520,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.NameBox.setCurrentIndex(0)
 
         json_files = [f for f in os.listdir('.') if f.endswith('.json')]
+        json_files.remove("InputOutputConfig.json")
         for json_file in json_files:
             self.NameBox.addItem(json_file)
 
@@ -594,7 +590,6 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         layout.addSpacerItem(spacer)
 
     def create_input(self, parent=QGroupBox, layout=QVBoxLayout, title="", channels={}):
-        print("Creating Input")
 
         self.input_amount += 1
 
@@ -650,7 +645,6 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         layout.addWidget(input_group)
 
     def create_output(self, parent=QGroupBox, layout=QVBoxLayout, title="", channels={}):
-        print("Creating Output")
 
         self.output_amount += 1
 
@@ -782,6 +776,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
                 for title in data_title:
                     self.create_output(self.OutputTypesBox, self.OutputTypesBoxLayout, title, data_title[title])
                     self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
+
 # ------------------------------------------------------
 
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
