@@ -302,7 +302,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
         self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
-        self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.OutputTypesBoxLayout, spacer))
+        self.DeleteButton.clicked.connect(lambda: self.delete_preset(spacer))
 
         # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
@@ -363,7 +363,7 @@ class PresetMaker(QtWidgets.QMainWindow):
         # --- Dropdowns for each channel ---
         for ch in channel_amount:
             combo = QComboBox(output_channel_container)
-            combo.addItem(f"Out {ch}")
+            combo.addItem(f"Out: {ch}")
             combo.setMaximumSize(200, 50)
 
             # Add existing inputs
@@ -422,6 +422,8 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.addSpacerItem(spacer)
 
     def open_rename_window(self, index=int):
+        renamepreset.NameText.setText("")
+        renamepreset.NameText.setPlaceholderText(self.NameBox.currentText())
         widget.setCurrentIndex(3)
 
     def save_preset(self):
@@ -432,19 +434,21 @@ class PresetMaker(QtWidgets.QMainWindow):
             with open(f"{presetname}.json", "w") as output_file:
                 json.dump(self.output_data, output_file, indent=4)
         else:
-            with open(f"{presetname}.json", "a") as output_file:
+            with open(presetname, "w") as output_file:
                 json.dump(self.output_data, output_file, indent=4)
+            for file in renamepreset.renamedfiles:
+                os.remove(file)
 
         self.refresh_json_dropdown()
         self.show_message("Preset Saved")
 
-    def delete_preset(self, output_names_box_layout=QVBoxLayout, spacer=QSpacerItem):
+    def delete_preset(self, spacer=QSpacerItem):
 
         presetname = self.NameBox.currentText()
 
         if os.path.exists(presetname):
             os.remove(presetname)
-            self.include_reset_outputs(output_names_box_layout, spacer)
+            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
             self.NameBox.removeItem(self.NameBox.currentIndex())
             self.NameBox.setCurrentIndex(0)
             self.show_message("Preset Deleted")
@@ -537,15 +541,27 @@ class RenamePreset(QtWidgets.QMainWindow):
         loadUi("UI/RenamePreset.ui", self)
 
         presetmaker = PresetMaker()
+        self.renamedfiles = []
 
-        self.SaveNameButton.clicked.connect(lambda: self.save_name(presetmaker.NameBox))
+        self.SaveNameButton.clicked.connect(self.save_name)
         self.DiscardNameButton.clicked.connect(self.discard_name)
 
-    def save_name(self, index):
+    def save_name(self):
         presetname = self.NameText.text()
         index = presetmaker.NameBox.currentIndex()
+        old_file_list = []
+        new_file_list = []
 
-        presetmaker.NameBox.setItemText(index, presetname)
+        for i in range(presetmaker.NameBox.count()):
+            old_file_list.append(presetmaker.NameBox.itemText(i))
+
+        presetmaker.NameBox.setItemText(index, f"{presetname}.json")
+
+        for i in range(presetmaker.NameBox.count()):
+            new_file_list.append(presetmaker.NameBox.itemText(i))
+
+        self.renamedfiles = list(set(old_file_list) - (set(new_file_list)))
+
         widget.setCurrentIndex(2)
 
     def discard_name(self):
