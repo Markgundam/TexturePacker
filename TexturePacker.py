@@ -2,12 +2,14 @@
 import os
 import sys
 
+from PIL import Image
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
     QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox, QFileDialog
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore, sip
 from functools import partial
-from PIL import Image
+import cv2
+import numpy as np
 
 
 #------------------------------------------------------
@@ -34,7 +36,6 @@ class PackTextures(QtWidgets.QMainWindow):
 
         self.outputs_to_pack = {}
         self.texture_sets = {}
-        self.selected_files = []
 
         self.required_inputs = set()
         self.loaded_inputs = set()
@@ -49,6 +50,8 @@ class PackTextures(QtWidgets.QMainWindow):
         self.LoadFilesButton.clicked.connect(self.load_files)
 
         self.PackButton.setEnabled(False)
+
+        self.config = json.load(open("InputOutputConfig.json"))
 
     def refresh_json_dropdown(self):
         self.PresetChooser.blockSignals(True)
@@ -100,56 +103,67 @@ class PackTextures(QtWidgets.QMainWindow):
         widget.setCurrentIndex(0)
 
     def load_files(self):
-
         self.InputList.clear()
         self.loaded_inputs.clear()
         self.texture_sets.clear()
 
-        file_dialog = QFileDialog()
-        file_dialog.setWindowTitle("Open File")
-        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
-        file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
-
-        if not file_dialog.exec():
+        selected_files, _ = QFileDialog.getOpenFileNames(
+            self, "Open File", "", "Images (*.png *.jpg *.bmp)"
+        )
+        if not selected_files:
             return
 
-        selected_files = file_dialog.selectedFiles()
+        basenames_loaded = []
 
-        for file in selected_files:
-            filename = os.path.basename(file)
-            self.InputList.addItem(filename)
-
-            filename_no_ext = os.path.splitext(os.path.basename(file))[0]  # Remove .png
-            if "_" in filename_no_ext:
-                parts = filename_no_ext.split("_")
-                basename = "_".join(parts[:-1])  # Everything except the last part (the channel suffix)
-            else:
-                basename = filename_no_ext
-
-            if basename not in self.texture_sets:
-                self.texture_sets[basename] = {}
-
-            img = Image.open(file)
-            R = img.getchannel("R")
-            G = img.getchannel("G")
-            B = img.getchannel("B")
-
-            # Load configuration once (e.g. earlier in __init__ or before this function)
-            self.config = json.load(open("InputOutputConfig.json"))
-            inputs_config = self.config["Inputs"]
-
-            # Loop through config to detect which texture type matches the filename suffix
-            for texture_name, texture_info in inputs_config.items():
-                suffix = texture_info.get("Suffix", "")
-                if not suffix:
+        for imagefile in selected_files:
+            filename = os.path.basename(imagefile)
+            try:
+                # Load image with OpenCV
+                img_cv = cv2.imread(imagefile, cv2.IMREAD_COLOR)  # BGR
+                if img_cv is None:
+                    self.show_message(f"Failed to load image: {filename}")
                     continue
-                if filename.endswith(f"_{suffix}.png"):
-                    self.texture_sets[basename][texture_name] = (R, G, B)
-                    break
 
-        basenames = list(self.texture_sets.keys())
-        self.show_message(f"Loaded sets: {', '.join(basenames)}")
+                # Convert BGR -> RGB
+                img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
 
+                # Split channels
+                R = Image.fromarray(img_rgb[:, :, 0])
+                G = Image.fromarray(img_rgb[:, :, 1])
+                B = Image.fromarray(img_rgb[:, :, 2])
+
+                # Determine basename
+                filename_no_ext = os.path.splitext(filename)[0]
+                if "_" in filename_no_ext:
+                    parts = filename_no_ext.split("_")
+                    basename = "_".join(parts[:-1])
+                else:
+                    basename = filename_no_ext
+
+                if basename not in self.texture_sets:
+                    self.texture_sets[basename] = {}
+
+                # Match input config suffixes
+                inputs_config = self.config["Inputs"]
+                for texture_name, texture_info in inputs_config.items():
+                    suffix = texture_info.get("Suffix", "")
+                    if not suffix:
+                        continue
+                    if filename.endswith(f"_{suffix}.png"):
+                        self.texture_sets[basename][texture_name] = (R, G, B)
+                        break
+
+                self.InputList.addItem(filename)
+                basenames_loaded.append(basename)
+
+            except Exception as e:
+                self.show_message(f"Error loading {filename}: {e}")
+                continue
+
+        # Update GUI after all images
+        self.show_message(f"Loaded sets: {', '.join(basenames_loaded)}")
+
+        # Check missing channels
         missing = []
         for name, channels in self.texture_sets.items():
             missing_channels = self.required_inputs - set(channels.keys())
@@ -190,51 +204,58 @@ class PackTextures(QtWidgets.QMainWindow):
 
                 self.OutputList.addItem(item)
 
-    def pack_textures(self, outputs_to_pack=dict):
+    def pack_textures(self, outputs_to_pack=dict, tex_path="."):
         if not hasattr(self, "texture_sets") or not self.texture_sets:
             self.show_message("No texture sets loaded!")
             return
 
         for basename, channels_dict in self.texture_sets.items():
-
             missing = self.required_inputs - set(channels_dict.keys())
             if missing:
                 self.show_message(f"Skipping {basename}, missing: {', '.join(missing)}")
                 continue
 
-            for outputfiles, channels in outputs_to_pack.items():
+            for output_name, channel_info in outputs_to_pack.items():
                 img_channels = []
 
-                for channel in channels["Channels"]:
-                    channel_str = str(channel)
-                    base_name = channel_str[:-3]
+                for channel_str in channel_info["Channels"]:
+                    base_name = channel_str[:-2] if len(channel_str) > 1 else channel_str
+                    channel_letter = channel_str[-1]  # R, G, or B
 
                     if base_name not in channels_dict:
-                        self.show_message(f"Missing input for channel {channel} in set {basename}")
+                        self.show_message(f"Missing input for channel {channel_str} in set {basename}")
                         break
 
-                    if channel_str[-1:] == "R":
-                        img_channel = channels_dict[base_name][0]
-                    elif channel_str[-1:] == "G":
-                        img_channel = channels_dict[base_name][1]
-                    elif channel_str[-1:] == "B":
-                        img_channel = channels_dict[base_name][2]
+                    R, G, B = channels_dict[base_name]
 
-                    img_channels.append(img_channel)
-                    print(f"{basename} | {channel}: {img_channel}")
-
+                    if channel_letter == "R":
+                        img_channels.append(R)
+                    elif channel_letter == "G":
+                        img_channels.append(G)
+                    elif channel_letter == "B":
+                        img_channels.append(B)
+                    else:
+                        self.show_message(f"Unknown channel {channel_letter} in {channel_str}")
+                        break
                 else:
+                    # Merge channels into final image
                     try:
-                        if len(img_channels) > 3:
-                            image_packed = Image.merge("RGBA", tuple(img_channels))
-
+                        if len(img_channels) == 4:
+                            mode = "RGBA"
                         else:
-                            image_packed = Image.merge("RGB", tuple(img_channels))
-                        image_packed.save(f"{tex_path}/{basename}_{outputfiles}.png")
-                        self.show_message(f"Packed {basename}_{outputfiles}.png")
+                            mode = "RGB"
+
+                        image_packed = Image.merge(mode, tuple(img_channels))
+
+                        # Ensure output folder exists
+                        os.makedirs(tex_path, exist_ok=True)
+
+                        output_file = os.path.join(tex_path, f"{basename}_{output_name}.png")
+                        image_packed.save(output_file)
+                        self.show_message(f"Packed {basename}_{output_name}.png")
 
                     except Exception as e:
-                        self.show_message(f"Failed to pack {basename}_{outputfiles}: {e}")
+                        self.show_message(f"Failed to pack {basename}_{output_name}: {e}")
 
     def showEvent(self, event):
         self.refresh_json_dropdown()
