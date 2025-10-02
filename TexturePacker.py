@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, Q
     QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox, QFileDialog
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets, QtCore, sip
-from PIL import Image
 from functools import partial
+from PIL import Image
 
 
 #------------------------------------------------------
@@ -34,7 +34,6 @@ class PackTextures(QtWidgets.QMainWindow):
 
         self.outputs_to_pack = {}
         self.texture_sets = {}
-        self.basename = ""
         self.selected_files = []
 
         self.required_inputs = set()
@@ -101,7 +100,6 @@ class PackTextures(QtWidgets.QMainWindow):
         widget.setCurrentIndex(0)
 
     def load_files(self):
-        global basename
 
         self.InputList.clear()
         self.loaded_inputs.clear()
@@ -132,7 +130,9 @@ class PackTextures(QtWidgets.QMainWindow):
                 self.texture_sets[basename] = {}
 
             img = Image.open(file)
-            R, G, B = img.getchannel("R"), img.getchannel("G"), img.getchannel("B")
+            R = img.getchannel("R")
+            G = img.getchannel("G")
+            B = img.getchannel("B")
 
             # Load configuration once (e.g. earlier in __init__ or before this function)
             self.config = json.load(open("InputOutputConfig.json"))
@@ -140,10 +140,10 @@ class PackTextures(QtWidgets.QMainWindow):
 
             # Loop through config to detect which texture type matches the filename suffix
             for texture_name, texture_info in inputs_config.items():
-                suffix = texture_info.get("Suffix", "").upper()
+                suffix = texture_info.get("Suffix", "")
                 if not suffix:
                     continue
-                if filename.upper().endswith(f"_{suffix}.PNG"):
+                if filename.endswith(f"_{suffix}.png"):
                     self.texture_sets[basename][texture_name] = (R, G, B)
                     break
 
