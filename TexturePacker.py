@@ -2,7 +2,6 @@
 import os
 import sys
 
-from PIL import Image
 from PyQt5.QtWidgets import QApplication, QCheckBox, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QSpinBox, \
     QLayout, QLabel, QPushButton, QListWidget, QSpacerItem, QSizePolicy, QWidget, QLineEdit, QComboBox, QFileDialog
 from PyQt5.uic import loadUi
@@ -44,7 +43,7 @@ class PackTextures(QtWidgets.QMainWindow):
         self.refresh_json_dropdown()
 
         self.PresetChooser.currentIndexChanged.connect(lambda: self.load_preset(self.PresetChooser))
-        self.PackButton.clicked.connect(lambda: self.pack_textures(self.outputs_to_pack))
+        self.PackButton.clicked.connect(lambda: self.pack_textures(self.outputs_to_pack, "PackedTextures"))
 
         self.LoadFilesButton.setEnabled(False)
         self.LoadFilesButton.clicked.connect(self.load_files)
@@ -118,19 +117,19 @@ class PackTextures(QtWidgets.QMainWindow):
         for imagefile in selected_files:
             filename = os.path.basename(imagefile)
             try:
-                # Load image with OpenCV
-                img_cv = cv2.imread(imagefile, cv2.IMREAD_COLOR)  # BGR
+                # Load with OpenCV (BGR)
+                img_cv = cv2.imread(imagefile, cv2.IMREAD_COLOR)
                 if img_cv is None:
                     self.show_message(f"Failed to load image: {filename}")
                     continue
 
-                # Convert BGR -> RGB
+                # Convert to RGB
                 img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
 
-                # Split channels
-                R = Image.fromarray(img_rgb[:, :, 0])
-                G = Image.fromarray(img_rgb[:, :, 1])
-                B = Image.fromarray(img_rgb[:, :, 2])
+                # Split channels as NumPy arrays
+                R = img_rgb[:, :, 0]
+                G = img_rgb[:, :, 1]
+                B = img_rgb[:, :, 2]
 
                 # Determine basename
                 filename_no_ext = os.path.splitext(filename)[0]
@@ -160,7 +159,7 @@ class PackTextures(QtWidgets.QMainWindow):
                 self.show_message(f"Error loading {filename}: {e}")
                 continue
 
-        # Update GUI after all images
+        # Update GUI
         self.show_message(f"Loaded sets: {', '.join(basenames_loaded)}")
 
         # Check missing channels
@@ -210,52 +209,57 @@ class PackTextures(QtWidgets.QMainWindow):
             return
 
         for basename, channels_dict in self.texture_sets.items():
-            missing = self.required_inputs - set(channels_dict.keys())
-            if missing:
-                self.show_message(f"Skipping {basename}, missing: {', '.join(missing)}")
+            missing_channels_set = self.required_inputs - set(channels_dict.keys())
+            if missing_channels_set:
+                self.show_message(f"Skipping {basename}, missing: {', '.join(missing_channels_set)}")
                 continue
 
             for output_name, channel_info in outputs_to_pack.items():
-                img_channels = []
+                merged_channels = []
 
                 for channel_str in channel_info["Channels"]:
-                    base_name = channel_str[:-2] if len(channel_str) > 1 else channel_str
-                    channel_letter = channel_str[-1]  # R, G, or B
-
-                    if base_name not in channels_dict:
-                        self.show_message(f"Missing input for channel {channel_str} in set {basename}")
-                        break
-
-                    R, G, B = channels_dict[base_name]
-
-                    if channel_letter == "R":
-                        img_channels.append(R)
-                    elif channel_letter == "G":
-                        img_channels.append(G)
-                    elif channel_letter == "B":
-                        img_channels.append(B)
-                    else:
-                        self.show_message(f"Unknown channel {channel_letter} in {channel_str}")
-                        break
-                else:
-                    # Merge channels into final image
                     try:
-                        if len(img_channels) == 4:
-                            mode = "RGBA"
+                        # Parse preset format "TextureName: R"
+                        parts = channel_str.split(":")
+                        base_name = parts[0].strip()
+                        channel_letter = parts[1].strip().upper()
+
+                        if base_name not in channels_dict:
+                            self.show_message(f"Missing input for channel {channel_str} in set {basename}")
+                            break
+
+                        R, G, B = channels_dict[base_name]
+
+                        if channel_letter == "R":
+                            merged_channels.append(R)
+                        elif channel_letter == "G":
+                            merged_channels.append(G)
+                        elif channel_letter == "B":
+                            merged_channels.append(B)
                         else:
-                            mode = "RGB"
-
-                        image_packed = Image.merge(mode, tuple(img_channels))
-
-                        # Ensure output folder exists
-                        os.makedirs(tex_path, exist_ok=True)
-
-                        output_file = os.path.join(tex_path, f"{basename}_{output_name}.png")
-                        image_packed.save(output_file)
-                        self.show_message(f"Packed {basename}_{output_name}.png")
+                            self.show_message(f"Unknown channel {channel_letter} in {channel_str}")
+                            break
 
                     except Exception as e:
-                        self.show_message(f"Failed to pack {basename}_{output_name}: {e}")
+                        self.show_message(f"Error parsing channel {channel_str}: {e}")
+                        break
+                else:
+                    # Merge channels as NumPy array
+                    if len(merged_channels) == 4:
+                        merged_img = cv2.merge(merged_channels)  # RGBA
+                    else:
+                        merged_img = cv2.merge(merged_channels)  # RGB
+
+                    # Convert RGB to BGR for OpenCV saving
+                    merged_bgr = cv2.cvtColor(merged_img, cv2.COLOR_RGB2BGR)
+
+                    # Ensure output folder exists
+                    os.makedirs(tex_path, exist_ok=True)
+                    output_file = os.path.join(tex_path, f"{basename}_{output_name}.png")
+
+                    # Save final image
+                    cv2.imwrite(output_file, merged_bgr)
+                    self.show_message(f"Packed {basename}_{output_name}.png")
 
     def showEvent(self, event):
         self.refresh_json_dropdown()
