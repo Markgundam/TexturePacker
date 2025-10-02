@@ -69,12 +69,6 @@
                "G": true,
                "B": true,
                "A": true
-          },
-          "RG": {
-               "R": true,
-               "G": true,
-               "B": false,
-               "A": false
           }
      }
 }

@@ -134,17 +134,18 @@ class PackTextures(QtWidgets.QMainWindow):
             img = Image.open(file)
             R, G, B = img.getchannel("R"), img.getchannel("G"), img.getchannel("B")
 
-            # UPDATE TO LOOP WITHIN CONFIG - ADD SUFFIX
-            if filename.endswith("_B.png"):
-                self.texture_sets[basename]["BaseColor"] = (R, G, B)
-            elif filename.endswith("_N.png"):
-                self.texture_sets[basename]["Normals"] = (R, G, B)
-            elif filename.endswith("_O.png"):
-                self.texture_sets[basename]["AO"] = (R, G, B)
-            elif filename.endswith("_H.png"):
-                self.texture_sets[basename]["Height"] = (R, G, B)
-            elif filename.endswith("_R.png"):
-                self.texture_sets[basename]["Roughness"] = (R, G, B)
+            # Load configuration once (e.g. earlier in __init__ or before this function)
+            self.config = json.load(open("InputOutputConfig.json"))
+            inputs_config = self.config["Inputs"]
+
+            # Loop through config to detect which texture type matches the filename suffix
+            for texture_name, texture_info in inputs_config.items():
+                suffix = texture_info.get("Suffix", "").upper()
+                if not suffix:
+                    continue
+                if filename.upper().endswith(f"_{suffix}.PNG"):
+                    self.texture_sets[basename][texture_name] = (R, G, B)
+                    break
 
         basenames = list(self.texture_sets.keys())
         self.show_message(f"Loaded sets: {', '.join(basenames)}")
@@ -267,12 +268,12 @@ class PresetMaker(QtWidgets.QMainWindow):
         self.setup_config()
 
         # reset button
-        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, spacer))
+        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, self.spacer))
 
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
-        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, spacer))
+        self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
-        self.DeleteButton.clicked.connect(lambda: self.delete_preset(spacer))
+        self.DeleteButton.clicked.connect(lambda: self.delete_preset(self.spacer))
 
         # back to main menu button
         self.BackButton.clicked.connect(self.back_to_mainmenu)
@@ -568,11 +569,14 @@ class RenamePreset(QtWidgets.QMainWindow):
             old_file_list.append(presetmaker.NameBox.itemText(i))
 
         presetmaker.NameBox.setItemText(index, f"{presetname}.json")
+        packtextures.PresetChooser.setItemText(index, f"{presetname}.json")
 
         for i in range(presetmaker.NameBox.count()):
             new_file_list.append(presetmaker.NameBox.itemText(i))
 
         self.renamedfiles = list(set(old_file_list) - (set(new_file_list)))
+
+        presetmaker.show_message("Preset renamed, don't forget to save changes")
 
         widget.setCurrentIndex(2)
 
@@ -614,6 +618,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         self.load_config()
 
     def back_to_presetmaker(self):
+        presetmaker.setup_config()
         widget.setCurrentIndex(2)
 
     def spacer_manager(self, layout=QVBoxLayout, spacer=QSpacerItem):
@@ -753,7 +758,6 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         print(f"Inputs: {self.input_amount}, Outputs: {self.output_amount}")
 
     def save_config(self):
-        print("Save Config")
 
         final_data = {}
         final_data["Inputs"] = self.input_data
@@ -766,8 +770,13 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         return isinstance(widget, QWidget) and not sip.isdeleted(widget)
 
     def update_config(self):
+        print("Updating config...")
 
-        for title, suffix, checkbox_set in zip(self.all_input_titles, self.all_input_suffixes, self.all_input_checkboxes):
+        self.input_data = {}
+        self.output_data = {}
+
+        for title, suffix, checkbox_set in zip(self.all_input_titles, self.all_input_suffixes,
+                                               self.all_input_checkboxes):
             if title is None or sip.isdeleted(title):
                 continue
             if suffix is None or sip.isdeleted(suffix):
@@ -776,6 +785,9 @@ class ConfigBuilder(QtWidgets.QMainWindow):
                 continue
 
             title_str = str(title.text()).strip()
+            if not title_str:
+                continue
+
             self.input_data[title_str] = {
                 "Suffix": suffix.text(),
                 "R": checkbox_set[0].isChecked(),
@@ -783,7 +795,6 @@ class ConfigBuilder(QtWidgets.QMainWindow):
                 "B": checkbox_set[2].isChecked(),
                 "A": checkbox_set[3].isChecked(),
             }
-
             print(f"Updated {title_str}: {self.input_data[title_str]}")
 
         for title, checkbox_set in zip(self.all_output_titles, self.all_output_checkboxes):
@@ -793,16 +804,19 @@ class ConfigBuilder(QtWidgets.QMainWindow):
                 continue
 
             title_str = str(title.text()).strip()
+            if not title_str:
+                continue
+
             self.output_data[title_str] = {
                 "R": checkbox_set[0].isChecked(),
                 "G": checkbox_set[1].isChecked(),
                 "B": checkbox_set[2].isChecked(),
                 "A": checkbox_set[3].isChecked(),
             }
-
             print(f"Updated {title_str}: {self.output_data[title_str]}")
 
         self.save_config()
+        print("Config saved ✅")
 
         presetmaker.setup_config()
 
