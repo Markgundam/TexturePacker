@@ -5,12 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e34cea3e-f2a5-406c-bc1b-2fff0387cbf1" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/TexturePacker.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/TexturePacker.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/InputOutputConfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/InputOutputConfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Alb.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Hght.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Mtl.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Nrm.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Rgh.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/TexturePacker.py" beforeDir="false" afterPath="$PROJECT_DIR$/TexturePacker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/ConfigBuilder.ui" beforeDir="false" afterPath="$PROJECT_DIR$/UI/ConfigBuilder.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/PackTextures.ui" beforeDir="false" afterPath="$PROJECT_DIR$/UI/PackTextures.ui" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/PresetMaker.ui" beforeDir="false" afterPath="$PROJECT_DIR$/UI/PresetMaker.ui" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

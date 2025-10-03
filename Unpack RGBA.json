@@ -1,0 +1,18 @@
+{
+    "Out 1": {
+        "Title": "R",
+        "R": "Unpack: R"
+    },
+    "Out 2": {
+        "Title": "G",
+        "R": "Unpack: G"
+    },
+    "Out 3": {
+        "Title": "B",
+        "R": "Unpack: B"
+    },
+    "Out 4": {
+        "Title": "A",
+        "R": "Unpack: A"
+    }
+}

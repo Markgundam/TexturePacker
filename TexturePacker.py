@@ -45,6 +45,9 @@ class PackTextures(QtWidgets.QMainWindow):
         self.PresetChooser.currentIndexChanged.connect(lambda: self.load_preset(self.PresetChooser))
         self.PackButton.clicked.connect(lambda: self.pack_textures(self.outputs_to_pack, "PackedTextures"))
 
+        self.DeleteFileButton.clicked.connect(self.delete_file_clicked)
+        self.DeleteAllFilesButton.clicked.connect(self.delete_all_files)
+
         self.LoadFilesButton.setEnabled(False)
         self.LoadFilesButton.clicked.connect(self.load_files)
 
@@ -102,6 +105,13 @@ class PackTextures(QtWidgets.QMainWindow):
         widget.setCurrentIndex(0)
 
     def load_files(self):
+        try:
+            with open("InputOutputConfig.json", "r") as json_file:
+                self.config = json.load(json_file)
+        except Exception as e:
+            self.show_message(f"Failed to load config: {e}")
+            return
+
         self.InputList.clear()
         self.loaded_inputs.clear()
         self.texture_sets.clear()
@@ -262,8 +272,66 @@ class PackTextures(QtWidgets.QMainWindow):
                     self.show_message(f"Packed {basename}_{output_name}.png")
 
     def showEvent(self, event):
+        try:
+            with open("InputOutputConfig.json", "r") as json_file:
+                self.config = json.load(json_file)
+            self.show_message("Config reloaded")
+        except Exception as e:
+            self.show_message(f"Failed to reload config: {e}")
+
         self.refresh_json_dropdown()
         super().showEvent(event)
+
+    def delete_file_clicked(self):
+        selected_items = self.InputList.selectedItems()
+        if not selected_items:
+            self.show_message("No file selected to delete")
+            return
+
+        for item in selected_items:
+            filename = item.text()
+            # Remove from InputList widget
+            row = self.InputList.row(item)
+            self.InputList.takeItem(row)
+
+            # Determine basename
+            filename_no_ext = os.path.splitext(filename)[0]
+            if "_" in filename_no_ext:
+                parts = filename_no_ext.split("_")
+                basename = "_".join(parts[:-1])
+                suffix_part = parts[-1]
+            else:
+                basename = filename_no_ext
+                suffix_part = ""
+
+            # Remove the corresponding entry in texture_sets
+            if basename in self.texture_sets:
+                # Check which input matches this suffix
+                for input_name, channels in list(self.config["Inputs"].items()):
+                    if suffix_part == channels.get("Suffix", ""):
+                        if input_name in self.texture_sets[basename]:
+                            del self.texture_sets[basename][input_name]
+
+                # If no channels remain for this basename, remove the entry
+                if not self.texture_sets[basename]:
+                    del self.texture_sets[basename]
+
+        # Refresh output list and messages
+        self.update_outputs()
+        self.show_message(f"Deleted {len(selected_items)} file(s)")
+
+    def delete_all_files(self):
+        # Clear the QListWidget
+        self.InputList.clear()
+
+        # Clear the internal texture sets
+        self.texture_sets.clear()
+
+        # Refresh outputs
+        self.update_outputs()
+
+        # Notify user
+        self.show_message("All files deleted")
 
 #------------------------------------------------------
 
@@ -307,10 +375,12 @@ class PresetMaker(QtWidgets.QMainWindow):
         button.setEnabled(False)
         for combo in self.all_output_dropdowns:
             for channel in channels:
-                combo.addItem(f"{input_name}: {channel}")
+                if channel != "Suffix":
+                    combo.addItem(f"{input_name}: {channel}")
 
         for channel in channels:
-            self.input_used.append(f"{input_name}: {channel}")
+            if channel != "Suffix":
+                self.input_used.append(f"{input_name}: {channel}")
 
         self.show_message(f"Added {input_name} to inputs")
 
@@ -469,9 +539,23 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout.addSpacerItem(spacer)
 
     def include_reset_window(self, layout=QVBoxLayout):
-        print("reset window")
-        # for i in reversed(range(layout.count())):
-        #     layout.itemAt(i).widget().deleteLater()
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+            else:
+                # remove spacer items too
+                layout.removeItem(item)
+
+        self.outputs = 0
+        self.all_output_dropdowns.clear()
+        self.all_output_names.clear()
+        self.output_data.clear()
+        self.all_channels_used_in_preset.clear()
+
+        layout.addSpacerItem(self.spacer)
 
     def open_rename_window(self, index=int):
         renamepreset.NameText.setText("")
@@ -505,44 +589,54 @@ class PresetMaker(QtWidgets.QMainWindow):
             print("The file does not exist")
 
     def load_file(self, namebox=QComboBox, spacer=QSpacerItem):
+        preset_name = namebox.currentText()
 
-        if namebox.currentText().endswith(".json"):
+        # If it's a real preset file
+        if preset_name.endswith(".json"):
             try:
-                with open(namebox.currentText(), "r") as json_file:
+                with open(preset_name, "r") as json_file:
                     parsed_data = json.load(json_file)
             except Exception as e:
                 self.show_message(f"Failed to load preset: {e}")
                 return
 
-            # Reset everything first
+            # --- Step 1: Reset UI state ---
             self.input_used.clear()
             self.include_reset_window(self.OutputNamesBoxLayout)
             self.DeleteButton.setEnabled(True)
 
-            # Keep track of which inputs need to be enabled
-            used_inputs = {}
+            # Reset all input buttons (in case they were disabled before)
+            for button in self.input_buttons.values():
+                button.setEnabled(True)
+                button.setStyleSheet("")  # reset style
 
-            # Recreate outputs dynamically
+            # --- Step 2: Detect used inputs ---
+            used_inputs = {}
+            for output_key, value in parsed_data.items():
+                for channel, assigned in value.items():
+                    if channel != "Title" and assigned and ":" in assigned:
+                        input_name, input_channel = assigned.split(": ")
+                        used_inputs.setdefault(input_name, set()).add(input_channel)
+
+            # --- Step 3: Recreate outputs dynamically ---
             for output_key, value in parsed_data.items():
                 title = value.get("Title", "")
-                channels = {channel: value for channel, value in value.items() if channel != "Title"}
-                self.include_output(list(channels.keys()), title, spacer)
+                # All channel keys (excluding "Title")
+                channel_keys = [ch for ch in value.keys() if ch != "Title"]
+                self.include_output(channel_keys, title, spacer)
 
-                # mark inputs that appear in this output
-                for channel_val in channels.values():
-                    if channel_val:
-                        input_name = channel_val.split(": ")[0]
-                        input_channel = channel_val.split(": ")[1]
-                        if input_name not in used_inputs:
-                            used_inputs[input_name] = set()
-                        used_inputs[input_name].add(input_channel)
-
-            # Enable inputs used in preset
+            # --- Step 4: Re-include inputs in dropdowns ---
             for input_name, channels in used_inputs.items():
                 if input_name in self.input_buttons:
+                    # This will disable the button and add items to dropdowns
                     self.include_input(input_name, self.input_buttons[input_name], list(channels))
 
-            # Set dropdowns to the values in the preset
+            # --- Step 5: Restore dropdown selections ---
+            for output_key, output_data in parsed_data.items():
+                remapped_data = self.remap_preset_inputs(output_data)
+                parsed_data[output_key] = remapped_data
+
+            # Set dropdowns to remapped values
             output_dropdowns = [dropdown for dropdown in self.all_output_dropdowns if dropdown.count() > 1]
             channel_values = []
             for output in parsed_data.values():
@@ -555,13 +649,15 @@ class PresetMaker(QtWidgets.QMainWindow):
                 if index >= 0:
                     dropdown.setCurrentIndex(index)
 
-            self.show_message("Preset Loaded")
+            # --- Step 6: Done ---
+            self.show_message(f"Preset '{preset_name}' Loaded")
 
         else:
+            # --- Handle empty preset ---
             self.show_message("Empty Preset Loaded")
             self.input_used.clear()
             self.DeleteButton.setEnabled(False)
-            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
+            self.include_reset_window(self.OutputNamesBoxLayout)
 
     def show_message(self, message=str):
         self.Notification.setText(message)
@@ -626,6 +722,82 @@ class PresetMaker(QtWidgets.QMainWindow):
 
             self.OutputTypesBoxLayout.addWidget(self.output_buttons[output_type])
             self.spacer_manager(self.OutputTypesBoxLayout, self.spacer)
+
+        self.refresh_output_dropdowns()
+
+    def refresh_output_dropdowns(self):
+        try:
+            with open("InputOutputConfig.json", "r") as json_file:
+                config = json.load(json_file)
+        except Exception as e:
+            self.show_message(f"Failed to reload config for dropdowns: {e}")
+            return
+
+        # Build list of all valid input:channel pairs
+        valid_inputs = []
+        for input_name, channels in config.get("Inputs", {}).items():
+            for ch, enabled in channels.items():
+                if enabled and ch != "Suffix":
+                    valid_inputs.append(f"{input_name}: {ch}")
+
+        # Update each dropdown in all outputs
+        for combo in self.all_output_dropdowns:
+            current_value = combo.currentText()  # save current selection
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItem("None")
+            for item in valid_inputs:
+                combo.addItem(item)
+
+            # Restore previous selection if still valid
+            if current_value in valid_inputs:
+                index = combo.findText(current_value)
+                combo.setCurrentIndex(index)
+            else:
+                combo.setCurrentIndex(0)
+            combo.blockSignals(False)
+
+        self.show_message("Dropdowns refreshed with updated config")
+
+    def remap_preset_inputs(self, preset_values):
+        try:
+            with open("InputOutputConfig.json", "r") as f:
+                config = json.load(f)
+        except Exception as e:
+            self.show_message(f"Failed to reload config: {e}")
+            return preset_values
+
+        # Build list of current input:channel strings
+        valid_inputs = []
+        for input_name, channels in config.get("Inputs", {}).items():
+            for ch, enabled in channels.items():
+                if enabled and ch != "Suffix":
+                    valid_inputs.append(f"{input_name}: {ch}")
+
+        updated_values = {}
+        for channel, value in preset_values.items():
+            if channel == "Title":
+                updated_values[channel] = value
+                continue
+            if value in valid_inputs:
+                # Already valid
+                updated_values[channel] = value
+            else:
+                # Try to find matching channel by name only (ignore old input name)
+                parts = value.split(": ")
+                if len(parts) == 2:
+                    old_channel = parts[1]
+                    # Look for new input with the same channel
+                    match = next((vi for vi in valid_inputs if vi.endswith(f": {old_channel}")), None)
+                    if match:
+                        updated_values[channel] = match
+                    else:
+                        # Fallback to None if not found
+                        updated_values[channel] = "None"
+                else:
+                    updated_values[channel] = "None"
+
+        return updated_values
 
 #------------------------------------------------------
 
@@ -909,7 +1081,9 @@ class ConfigBuilder(QtWidgets.QMainWindow):
         self.save_config()
         print("Config saved ✅")
 
-        presetmaker.setup_config()
+        # Update presetmaker UI:
+        presetmaker.setup_config()  # rebuild input/output buttons
+        presetmaker.refresh_output_dropdowns()  # update existing output dropdowns
 
     def load_config(self):
         try:
