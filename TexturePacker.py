@@ -292,9 +292,6 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         self.setup_config()
 
-        # reset button
-        self.ResetButton.clicked.connect(lambda: self.include_reset_outputs(self.OutputNamesBoxLayout, self.spacer))
-
         # preset files dropdown - where one can create a new preset and name it or load ones from system and rename them
         self.NameBox.currentIndexChanged.connect(lambda: self.load_file(self.NameBox, self.spacer))
         self.RenameButton.clicked.connect(self.open_rename_window)
@@ -332,23 +329,43 @@ class PresetMaker(QtWidgets.QMainWindow):
         current_output = self.outputs
         output_channel_drops = {}
 
-        # --- Output name field ---
+        # --- Top Line Container UI ---
+        # Group box for the top line
+        output_field_container = QGroupBox(parent)
+        output_field_container.setLayoutDirection(QtCore.Qt.LeftToRight)
+        output_field_container.setMinimumHeight(40)
+        field_layout_container = QHBoxLayout()
+        field_layout_container.setDirection(QHBoxLayout.LeftToRight)
+        output_field_container.setLayout(field_layout_container)
+
+        # Name field creation
         output_name_field = QLineEdit(parsed_title, parent)
         output_name_field.setMaximumHeight(33)
         output_name_field.setPlaceholderText("File Name")
-        self.all_output_names.append(output_name_field)
+
+        # Update title when name field is edited
+        output_name_field.editingFinished.connect(partial(self.update_output_title, self.output_data, output_name_field, current_output))
+
+        # Delete button creation
+        delete_button = QPushButton("X")
+        delete_button.setMaximumSize(20, 20)
+        delete_button.clicked.connect(lambda: self.delete_output(output_container))
+        delete_button.clicked.connect(lambda: self.spacer_manager(self.OutputNamesBoxLayout, self.spacer))
+
+        # Adding name field & delete button to top line layout
+        field_layout_container.addWidget(output_name_field)
+        field_layout_container.addWidget(delete_button)
 
         # Initialize output data dictionary
         self.output_data[f"Out {current_output}"] = {"Title": parsed_title}
         for ch in channel_amount:
             self.output_data[f"Out {current_output}"][ch] = None
 
-        # Update title dynamically
-        output_name_field.editingFinished.connect(
-            partial(self.update_output_title, self.output_data, output_name_field, current_output)
-        )
+        # append to all output names - TO REMOVE ON DELETE
+        self.all_output_names.append(output_name_field)
 
         # --- Channel container ---
+        # Group box for the bottom line
         output_channel_container = QGroupBox(parent)
         output_channel_container.setLayoutDirection(QtCore.Qt.LeftToRight)
         output_channel_container.setMinimumHeight(40)
@@ -356,31 +373,54 @@ class PresetMaker(QtWidgets.QMainWindow):
         layout_container.setDirection(QHBoxLayout.LeftToRight)
         output_channel_container.setLayout(layout_container)
 
-        # --- Dropdowns for each channel ---
+        # Set dropdowns for each channel
         for ch in channel_amount:
+            # Dropdown text for each channel
+            channel_text = QLabel(f"{ch}:", parent)
+            channel_text.setMaximumWidth(12)
+
+            # Dropdown creation for each channel
             combo = QComboBox(output_channel_container)
-            combo.addItem(f"Out: {ch}")
+            combo.addItem("None")
             combo.setMaximumSize(200, 50)
+
+            # Update output data when dropdown changes
+            combo.currentTextChanged.connect(partial(self.update_channel_dropdowns, self.output_data, output_channel_drops, current_output))
+
+            # Adding dropdown text & dropdown to bottom line layout
+            layout_container.addWidget(channel_text)
+            layout_container.addWidget(combo)
+
+            output_channel_drops[ch] = combo
+            self.all_output_dropdowns.append(combo)
 
             # Add existing inputs
             for used_input in self.input_used:
                 combo.addItem(used_input)
 
-            # Update output data when dropdown changes
-            combo.currentTextChanged.connect(
-                partial(self.update_channel_dropdowns, self.output_data, output_channel_drops, current_output)
-            )
-
-            layout_container.addWidget(combo)
-            output_channel_drops[ch] = combo
-            self.all_output_dropdowns.append(combo)
-
             # Optionally, add previously used channels
             for used_channel in self.all_channels_used_in_preset:
                 combo.addItem(used_channel)
 
-        layout.addWidget(output_name_field)
-        layout.addWidget(output_channel_container)
+        # --- Output container ---
+        # Output container creation
+        output_container = QGroupBox(parent)
+        output_container.setLayoutDirection(QtCore.Qt.LeftToRight)
+        output_container_layout = QVBoxLayout()
+        output_container_layout.setDirection(QVBoxLayout.TopToBottom)
+        output_container.setLayout(output_container_layout)
+
+        # Identification for deletion
+        output_container.setProperty("output_key", f"Out {current_output}")
+        output_container.setProperty("output_name_field", output_name_field)
+        output_container.setProperty("output_channel_drops", output_channel_drops)
+
+        # Adding top line & bottom line to the overall layout
+        output_container_layout.addWidget(output_field_container)
+        output_container_layout.addWidget(output_channel_container)
+
+        # Adding Output UI Widget to the Output box
+        layout.addWidget(output_container)
 
     def update_output_title(self, output_data, output_name_field=QLineEdit, index=int):
         output_data["Out " + str(index)].update({"Title": output_name_field.text()})
@@ -391,24 +431,35 @@ class PresetMaker(QtWidgets.QMainWindow):
         for key, dropdowns in output_channel_drops.items():
                 output_data["Out " + str(index)].update({key: dropdowns.currentText()})
 
-    def include_reset_outputs(self, layout=QVBoxLayout, spacer=QSpacerItem):
-        layout.removeItem(spacer)
+    def delete_output(self, output_container):
 
-        # delete all widgets in the layout
-        for i in reversed(range(layout.count())):
-            layout.itemAt(i).widget().deleteLater()
+        self.outputs -= 1
 
-        # clear dynamic lists/dictionaries
-        self.all_channels_used_in_preset.clear()
-        self.all_output_dropdowns.clear()
-        self.output_data.clear()
-        self.input_used.clear()
-        self.all_output_names.clear()
-        self.outputs = 0  # reset counter
+        # Retrieve parameters
+        key = output_container.property("output_key")
+        name = output_container.property("output_name_field")
+        dropdown = output_container.property("output_channel_drops")
 
-        # enable all input buttons dynamically
-        for button in self.input_buttons.values():
-            button.setEnabled(True)
+        if key in self.output_data:
+            del self.output_data[key]
+            print(f"Removed data for {key}")
+
+        if name in self.all_output_names:
+            self.all_output_names.remove(name)
+
+        for dropdown in dropdown.values():
+            if dropdown in self.all_output_dropdowns:
+                self.all_output_dropdowns.remove(dropdown)
+
+        parent_layout = output_container.parentWidget().layout()
+        if parent_layout:
+            parent_layout.removeWidget(output_container)
+
+        output_container.setParent(None)
+        output_container.deleteLater()
+
+        if parent_layout:
+            parent_layout.update()
 
     def back_to_mainmenu(self):
         widget.setCurrentIndex(0)
@@ -416,6 +467,11 @@ class PresetMaker(QtWidgets.QMainWindow):
     def spacer_manager(self, layout=QVBoxLayout, spacer=QSpacerItem):
         layout.removeItem(spacer)
         layout.addSpacerItem(spacer)
+
+    def include_reset_window(self, layout=QVBoxLayout):
+        print("reset window")
+        # for i in reversed(range(layout.count())):
+        #     layout.itemAt(i).widget().deleteLater()
 
     def open_rename_window(self, index=int):
         renamepreset.NameText.setText("")
@@ -441,7 +497,7 @@ class PresetMaker(QtWidgets.QMainWindow):
 
         if os.path.exists(presetname):
             os.remove(presetname)
-            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
+            self.include_reset_window(self.OutputNamesBoxLayout)
             self.NameBox.removeItem(self.NameBox.currentIndex())
             self.NameBox.setCurrentIndex(0)
             self.show_message("Preset Deleted")
@@ -460,7 +516,7 @@ class PresetMaker(QtWidgets.QMainWindow):
 
             # Reset everything first
             self.input_used.clear()
-            self.include_reset_outputs(self.OutputNamesBoxLayout, spacer)
+            self.include_reset_window(self.OutputNamesBoxLayout)
             self.DeleteButton.setEnabled(True)
 
             # Keep track of which inputs need to be enabled
@@ -664,14 +720,22 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         input_group.setLayout(input_group_layout)
 
+        title_label = QLabel("Title:")
+        title_label.setFixedWidth(30)
+
+        input_title = QLineEdit()
         input_title = QLineEdit()
         input_title.setMaximumHeight(30)
+        input_title.setFixedWidth(150)
         input_title.setContentsMargins(0, 0, 0, 0)
         input_title.setPlaceholderText("Input Title")
 
+        suffix_label = QLabel("Suffix:")
+        suffix_label.setFixedWidth(40)
+
         input_suffix = QLineEdit()
         input_suffix.setMaximumHeight(30)
-        input_suffix.setFixedWidth(100)
+        input_suffix.setFixedWidth(150)
         input_suffix.setContentsMargins(0, 0, 0, 0)
         input_suffix.setPlaceholderText("Suffix")
 
@@ -694,7 +758,9 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         input_channel_container.setLayout(input_channel_container_layout)
 
+        input_group_layout.addWidget(title_label)
         input_group_layout.addWidget(input_title)
+        input_group_layout.addWidget(suffix_label)
         input_group_layout.addWidget(input_suffix)
 
         for channel, value in channels.items():

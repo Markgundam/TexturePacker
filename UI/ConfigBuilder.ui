@@ -25,7 +25,7 @@
      <rect>
       <x>20</x>
       <y>70</y>
-      <width>461</width>
+      <width>641</width>
       <height>411</height>
      </rect>
     </property>
@@ -46,7 +46,7 @@
       <rect>
        <x>10</x>
        <y>20</y>
-       <width>441</width>
+       <width>621</width>
        <height>381</height>
       </rect>
      </property>
@@ -56,9 +56,9 @@
    <widget class="QGroupBox" name="OutputTypesBox">
     <property name="geometry">
      <rect>
-      <x>520</x>
+      <x>670</x>
       <y>70</y>
-      <width>461</width>
+      <width>311</width>
       <height>411</height>
      </rect>
     </property>
@@ -80,7 +80,7 @@
       <rect>
        <x>10</x>
        <y>20</y>
-       <width>441</width>
+       <width>291</width>
        <height>381</height>
       </rect>
      </property>
@@ -174,7 +174,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>21</height>
+     <height>18</height>
     </rect>
    </property>
   </widget>

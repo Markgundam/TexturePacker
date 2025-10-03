@@ -35,26 +35,12 @@
                "B": false,
                "A": false
           },
-          "Height": {
-               "Suffix": "Hght",
+          "Unpack": {
+               "Suffix": "UP",
                "R": true,
-               "G": false,
-               "B": false,
-               "A": false
-          },
-          "Emissive": {
-               "Suffix": "Emss",
-               "R": false,
-               "G": false,
-               "B": false,
-               "A": false
-          },
-          "Opacity": {
-               "Suffix": "Op",
-               "R": false,
-               "G": false,
-               "B": false,
-               "A": false
+               "G": true,
+               "B": true,
+               "A": true
           }
      },
      "Outputs": {

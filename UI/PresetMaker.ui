@@ -216,19 +216,6 @@
      </widget>
     </widget>
    </widget>
-   <widget class="QPushButton" name="ResetButton">
-    <property name="geometry">
-     <rect>
-      <x>840</x>
-      <y>430</y>
-      <width>141</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>RESET</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="BackButton">
     <property name="geometry">
      <rect>
