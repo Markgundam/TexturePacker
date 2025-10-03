@@ -5,8 +5,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e34cea3e-f2a5-406c-bc1b-2fff0387cbf1" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/TexturePacker.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/TexturePacker.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/4_RGB.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/InputOutputConfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/InputOutputConfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/MainMenu.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/PackTextures.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/PresetMaker.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/PythonTest.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TestPreset.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/TexturePacker.py" beforeDir="false" afterPath="$PROJECT_DIR$/TexturePacker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_B.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_H.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_M.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_N.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_O.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Grey_Asphalt_Shingles_R.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Rock_Layered_B.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Rock_Layered_H.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Rock_Layered_N.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Rock_Layered_O.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Rock_Layered_R.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_B.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_H.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_M.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_N.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_O.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Scratched_Metal_R.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Wall_Stone_B.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Wall_Stone_H.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Wall_Stone_N.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Wall_Stone_O.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Textures/Wall_Stone_R.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,6 +54,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/TexturePacker.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 0
@@ -32,16 +66,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.Test.executor": "Run",
-    "Python.TexturePacker.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.Test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.TexturePacker.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

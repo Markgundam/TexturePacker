@@ -671,7 +671,7 @@ class ConfigBuilder(QtWidgets.QMainWindow):
 
         input_suffix = QLineEdit()
         input_suffix.setMaximumHeight(30)
-        input_suffix.setFixedWidth(50)
+        input_suffix.setFixedWidth(100)
         input_suffix.setContentsMargins(0, 0, 0, 0)
         input_suffix.setPlaceholderText("Suffix")
 

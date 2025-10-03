@@ -1,43 +1,57 @@
 {
      "Inputs": {
           "BaseColor": {
-               "Suffix": "B",
+               "Suffix": "Alb",
                "R": true,
                "G": true,
                "B": true,
                "A": false
           },
           "Normals": {
-               "Suffix": "N",
+               "Suffix": "Nrm",
                "R": true,
                "G": true,
                "B": true,
                "A": false
           },
           "Roughness": {
-               "Suffix": "R",
+               "Suffix": "Rgh",
                "R": true,
                "G": false,
                "B": false,
                "A": false
           },
           "Metalness": {
-               "Suffix": "M",
+               "Suffix": "Mtl",
                "R": true,
                "G": false,
                "B": false,
                "A": false
           },
           "AO": {
-               "Suffix": "O",
+               "Suffix": "AO",
                "R": true,
                "G": false,
                "B": false,
                "A": false
           },
           "Height": {
-               "Suffix": "H",
+               "Suffix": "Hght",
                "R": true,
+               "G": false,
+               "B": false,
+               "A": false
+          },
+          "Emissive": {
+               "Suffix": "Emss",
+               "R": false,
+               "G": false,
+               "B": false,
+               "A": false
+          },
+          "Opacity": {
+               "Suffix": "Op",
+               "R": false,
                "G": false,
                "B": false,
                "A": false
