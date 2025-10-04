@@ -1,0 +1,26 @@
+{
+    "Out 1": {
+        "Title": "BBBR",
+        "R": "BaseColor: R",
+        "G": "BaseColor: G",
+        "B": "BaseColor: B",
+        "A": "Roughness: R"
+    },
+    "Out 2": {
+        "Title": "NNNA",
+        "R": "Normals: R",
+        "G": "Normals: G",
+        "B": "Normals: B",
+        "A": "AO: R"
+    },
+    "Out 3": {
+        "Title": "RAH",
+        "R": "Roughness: R",
+        "G": "AO: R",
+        "B": "Height: R"
+    },
+    "Out 4": {
+        "Title": "B",
+        "R": "BaseColor: R"
+    }
+}

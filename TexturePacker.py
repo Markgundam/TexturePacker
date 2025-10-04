@@ -113,8 +113,8 @@ class PackTextures(QtWidgets.QMainWindow):
             return
 
         self.InputList.clear()
-        self.loaded_inputs.clear()
         self.texture_sets.clear()
+        self.loaded_inputs.clear()
 
         selected_files, _ = QFileDialog.getOpenFileNames(
             self, "Open File", "", "Images (*.png *.jpg *.bmp)"
@@ -127,19 +127,21 @@ class PackTextures(QtWidgets.QMainWindow):
         for imagefile in selected_files:
             filename = os.path.basename(imagefile)
             try:
-                # Load with OpenCV (BGR)
-                img_cv = cv2.imread(imagefile, cv2.IMREAD_COLOR)
+                # Load with OpenCV (keep alpha if exists)
+                img_cv = cv2.imread(imagefile, cv2.IMREAD_UNCHANGED)
                 if img_cv is None:
                     self.show_message(f"Failed to load image: {filename}")
                     continue
 
-                # Convert to RGB
-                img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
-
-                # Split channels as NumPy arrays
-                R = img_rgb[:, :, 0]
-                G = img_rgb[:, :, 1]
-                B = img_rgb[:, :, 2]
+                # Determine channels dynamically
+                if img_cv.shape[2] == 3:
+                    R, G, B = cv2.split(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
+                    A = np.full_like(R, 255)
+                elif img_cv.shape[2] == 4:
+                    R, G, B, A = cv2.split(cv2.cvtColor(img_cv, cv2.COLOR_BGRA2RGBA))
+                else:
+                    self.show_message(f"Unsupported channel count in {filename}")
+                    continue
 
                 # Determine basename
                 filename_no_ext = os.path.splitext(filename)[0]
@@ -152,14 +154,11 @@ class PackTextures(QtWidgets.QMainWindow):
                 if basename not in self.texture_sets:
                     self.texture_sets[basename] = {}
 
-                # Match input config suffixes
-                inputs_config = self.config["Inputs"]
-                for texture_name, texture_info in inputs_config.items():
+                # Match input config suffix
+                for texture_name, texture_info in self.config["Inputs"].items():
                     suffix = texture_info.get("Suffix", "")
-                    if not suffix:
-                        continue
                     if filename.endswith(f"_{suffix}.png"):
-                        self.texture_sets[basename][texture_name] = (R, G, B)
+                        self.texture_sets[basename][texture_name] = (R, G, B, A)
                         break
 
                 self.InputList.addItem(filename)
@@ -169,10 +168,7 @@ class PackTextures(QtWidgets.QMainWindow):
                 self.show_message(f"Error loading {filename}: {e}")
                 continue
 
-        # Update GUI
-        self.show_message(f"Loaded sets: {', '.join(basenames_loaded)}")
-
-        # Check missing channels
+        # Check missing inputs
         missing = []
         for name, channels in self.texture_sets.items():
             missing_channels = self.required_inputs - set(channels.keys())
@@ -214,7 +210,7 @@ class PackTextures(QtWidgets.QMainWindow):
                 self.OutputList.addItem(item)
 
     def pack_textures(self, outputs_to_pack=dict, tex_path="."):
-        if not hasattr(self, "texture_sets") or not self.texture_sets:
+        if not self.texture_sets:
             self.show_message("No texture sets loaded!")
             return
 
@@ -229,23 +225,18 @@ class PackTextures(QtWidgets.QMainWindow):
 
                 for channel_str in channel_info["Channels"]:
                     try:
-                        # Parse preset format "TextureName: R"
-                        parts = channel_str.split(":")
-                        base_name = parts[0].strip()
-                        channel_letter = parts[1].strip().upper()
+                        base_name, channel_letter = map(str.strip, channel_str.split(":"))
+                        channel_letter = channel_letter.upper()
 
                         if base_name not in channels_dict:
                             self.show_message(f"Missing input for channel {channel_str} in set {basename}")
                             break
 
-                        R, G, B = channels_dict[base_name]
+                        R, G, B, A = channels_dict[base_name]
+                        channel_map = {"R": R, "G": G, "B": B, "A": A}
 
-                        if channel_letter == "R":
-                            merged_channels.append(R)
-                        elif channel_letter == "G":
-                            merged_channels.append(G)
-                        elif channel_letter == "B":
-                            merged_channels.append(B)
+                        if channel_letter in channel_map:
+                            merged_channels.append(channel_map[channel_letter])
                         else:
                             self.show_message(f"Unknown channel {channel_letter} in {channel_str}")
                             break
@@ -254,20 +245,26 @@ class PackTextures(QtWidgets.QMainWindow):
                         self.show_message(f"Error parsing channel {channel_str}: {e}")
                         break
                 else:
-                    # Merge channels as NumPy array
-                    if len(merged_channels) == 4:
-                        merged_img = cv2.merge(merged_channels)  # RGBA
+                    # Merge dynamically
+                    merged_img = cv2.merge(merged_channels)
+
+                    # Save appropriately based on channel count
+                    if len(merged_img.shape) == 2:
+                        # Single-channel (grayscale)
+                        merged_bgr = merged_img
                     else:
-                        merged_img = cv2.merge(merged_channels)  # RGB
+                        # Multi-channel
+                        channels = merged_img.shape[2]
+                        if channels == 4:
+                            merged_bgr = cv2.cvtColor(merged_img, cv2.COLOR_RGBA2BGRA)
+                        elif channels == 3:
+                            merged_bgr = cv2.cvtColor(merged_img, cv2.COLOR_RGB2BGR)
+                        else:
+                            self.show_message(f"Unsupported channel count: {channels}")
+                            continue
 
-                    # Convert RGB to BGR for OpenCV saving
-                    merged_bgr = cv2.cvtColor(merged_img, cv2.COLOR_RGB2BGR)
-
-                    # Ensure output folder exists
                     os.makedirs(tex_path, exist_ok=True)
                     output_file = os.path.join(tex_path, f"{basename}_{output_name}.png")
-
-                    # Save final image
                     cv2.imwrite(output_file, merged_bgr)
                     self.show_message(f"Packed {basename}_{output_name}.png")
 
@@ -829,7 +826,8 @@ class RenamePreset(QtWidgets.QMainWindow):
 
         self.renamedfiles = list(set(old_file_list) - (set(new_file_list)))
 
-        presetmaker.show_message("Preset renamed, don't forget to save changes")
+        presetmaker.save_preset()
+        presetmaker.show_message("Preset renamed and new file created")
 
         widget.setCurrentIndex(2)
 
