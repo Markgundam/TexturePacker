@@ -1,18 +1,12 @@
 {
-    "Out 1": {
-        "Title": "R",
-        "R": "Unpack: R"
+    "Out 4": {
+        "Title": "Roughness",
+        "R": "Unpack: A"
     },
     "Out 2": {
-        "Title": "G",
-        "R": "Unpack: G"
-    },
-    "Out 3": {
-        "Title": "B",
-        "R": "Unpack: B"
-    },
-    "Out 4": {
-        "Title": "A",
-        "R": "Unpack: A"
+        "Title": "BaseColor",
+        "R": "Unpack: R",
+        "G": "Unpack: G",
+        "B": "Unpack: B"
     }
 }

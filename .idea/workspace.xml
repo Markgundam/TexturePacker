@@ -5,17 +5,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e34cea3e-f2a5-406c-bc1b-2fff0387cbf1" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/TexturePacker.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/TexturePacker.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Create new" beforeDir="false" afterPath="$PROJECT_DIR$/Create new" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/InputOutputConfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/InputOutputConfig.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Alb.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Hght.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Mtl.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Nrm.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Rgh.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PackedTextures/Grey_Asphalt_Shingles_B.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PackedTextures/Grey_Asphalt_Shingles_G.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PackedTextures/Grey_Asphalt_Shingles_NOH.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PackedTextures/Grey_Asphalt_Shingles_R.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/PackedTextures/Grey_Asphalt_Shingles_Unpack.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_AO.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_BaseColor.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Height.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Metallic.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Normals.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Grey_Asphalt_Shingles_Roughness.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Rock_Layered_AO.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Rock_Layered_Alb.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Rock_Layered_Hght.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Rock_Layered_Nrm.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Rock_Layered_Rgh.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_AO.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_Alb.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_Hght.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_Mtl.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_Nrm.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Scratched_Metal_Rgh.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Wall_Stone_AO.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Wall_Stone_Alb.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Wall_Stone_Hght.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Wall_Stone_Nrm.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SampleTextures/Wall_Stone_Rgh.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/TexturePacker.py" beforeDir="false" afterPath="$PROJECT_DIR$/TexturePacker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/PackTextures.ui" beforeDir="false" afterPath="$PROJECT_DIR$/UI/PackTextures.ui" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Unpack RGBA.json" beforeDir="false" afterPath="$PROJECT_DIR$/Unpack RGBA.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
